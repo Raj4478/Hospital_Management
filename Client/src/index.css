@@ -1,0 +1,6 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Alex+Brush&family=Comforter+Brush&family=Dancing+Script:wght@400..700&family=Kolker+Brush&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=New+Amsterdam&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
