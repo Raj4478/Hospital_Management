@@ -1,7 +1,11 @@
+import dotenv from "dotenv";
+dotenv.config({ path: "../.env" }); // ✅ explicitly load .env from root
+
+
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import serverless from "serverless-http"; // ✅ Add this line
+import serverless from "serverless-http"; // ✅ For Vercel/Netlify serverless
 
 const app = express();
 
@@ -22,4 +26,6 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/user", userRouter);
 
-export const handler = serverless(app); // ✅ Export the wrapped handler
+// ✅ Export for serverless deployment (Vercel or Netlify)
+export const handler = serverless(app);
+export default app;

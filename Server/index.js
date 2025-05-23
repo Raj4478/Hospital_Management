@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
-import {app} from "./app.js";
+import app from "./app.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "../.env" }); // ✅ explicitly load .env from root
 
 const connectDB = async() => {
  
@@ -13,6 +15,9 @@ const connectDB = async() => {
         
     }
 }
+console.log("Cloudinary api Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("MongoDB api URI:", process.env.MONGODB_URI);
+
 
 connectDB().then(()=>{
     app.listen(process.env.PORT || 8000, () => {
