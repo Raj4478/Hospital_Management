@@ -1,244 +1,227 @@
-# Hospital Management System 🏥
+# MediCare HMS 🏥
 
-A comprehensive web-based Hospital Management System designed to streamline healthcare operations, manage patient records, schedule appointments, and facilitate efficient communication between patients, doctors, and hospital administrators.
+A modern, full-stack Hospital Management System built with React + Node.js. Manage patients, doctors, diet plans, and meal deliveries from a clean, role-based dashboard.
 
-## 🌟 Features
+![Node.js](https://img.shields.io/badge/Node.js-20.x-green?style=flat-square&logo=node.js)
+![React](https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?style=flat-square&logo=mongodb)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-Image%20Upload-blue?style=flat-square)
 
-### 👥 User Management
-- **Multi-role Authentication**: Separate login systems for Patients, Doctors, and Administrators
-- **Secure Registration**: User registration with email verification
-- **Profile Management**: Update personal information and medical details
-- **Role-based Access Control**: Different permissions for different user types
+---
 
-### 👨‍⚕️ Doctor Portal
-- **Dashboard Overview**: Quick access to daily appointments and patient summaries
-- **Patient Management**: View patient history, medical records, and diagnoses
-- **Appointment Scheduling**: Manage availability and appointment slots
-- **Prescription Management**: Create and manage patient prescriptions
-- **Medical Reports**: Generate and view diagnostic reports
+## ✨ Features
 
-### 👤 Patient Portal
-- **Online Appointment Booking**: Schedule appointments with preferred doctors
-- **Medical History**: Access personal medical records and treatment history
-- **Prescription Tracking**: View current and past prescriptions
-- **Bill Management**: View and download medical bills and invoices
-- **Test Results**: Access lab reports and diagnostic results
+**Manager Role**
+- Dashboard with live stats (patients, doctors, diet plans, deliveries)
+- Register and view patients with full medical details
+- Register and manage doctors with specializations
+- Create and manage patient diet plans (morning, evening, night meals)
+- Assign meal deliveries to pantry staff and mark them complete
 
-### 👔 Admin Panel
-- **User Management**: Manage doctors, patients, and staff accounts
-- **Department Management**: Organize hospital departments and specializations
-- **Appointment Oversight**: Monitor and manage all hospital appointments
-- **Financial Reports**: Generate revenue and expense reports
-- **System Configuration**: Manage hospital settings and configurations
+**Pantry Staff Role**
+- View all active patients and their diet plans
+- Manage delivery assignments and update delivery status
 
-### 📊 Additional Features
-- **Real-time Notifications**: Email/SMS notifications for appointments and updates
-- **Search Functionality**: Advanced search for patients, doctors, and records
-- **Data Export**: Export reports in PDF and Excel formats
-- **Responsive Design**: Mobile-friendly interface for all devices
-- **Security**: Data encryption and secure session management
+**Both Roles**
+- Secure JWT-based login with role-based routing
+- Image uploads via Cloudinary (patient photos, doctor photos, meal images)
+- Fully responsive — works on mobile, tablet, and desktop
 
-## 🚀 Tech Stack
+---
 
-- **Backend**: NodeJs
-- **Database**: MongoDB
-- **Frontend**: HTML5, CSS3, JavaScript, Bootstrap 5
-- **Additional**: jQuery, Chart.js for analytics
+## 🛠️ Tech Stack
 
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Tailwind CSS, React Router v7 |
+| Backend | Node.js, Express.js |
+| Database | MongoDB (Mongoose ODM) |
+| Auth | JWT (access + refresh tokens), bcrypt |
+| Image Upload | Multer + Cloudinary |
+| Deployment | Vercel (frontend) / Railway or Render (backend) |
 
-
-
-
-### Default Login Credentials
-
-**Administrator:**
-- Username: `admin@hospital.com`
-- Password: `admin123`
-
-**Doctor (Demo):**
-- Username: `doctor@hospital.com`
-- Password: `doctor123`
-
-**Patient (Demo):**
-- Username: `patient@hospital.com`
-- Password: `patient123`
-
-> ⚠️ **Important**: Change default passwords after first login!
+---
 
 ## 📁 Project Structure
 
 ```
 Hospital_Management/
-├── index.php                 # Main entry point
-├── config/
-│   ├── database.php         # Database configuration
-│   ├── config.php           # General configuration
-│   └── session.php          # Session management
-├── includes/
-│   ├── header.php           # Common header
-│   ├── footer.php           # Common footer
-│   ├── sidebar.php          # Navigation sidebar
-│   └── functions.php        # Utility functions
-├── admin/
-│   ├── dashboard.php        # Admin dashboard
-│   ├── manage_doctors.php   # Doctor management
-│   ├── manage_patients.php  # Patient management
-│   └── reports.php          # System reports
-├── doctor/
-│   ├── dashboard.php        # Doctor dashboard
-│   ├── appointments.php     # Appointment management
-│   ├── patients.php         # Patient records
-│   └── prescriptions.php    # Prescription management
-├── patient/
-│   ├── dashboard.php        # Patient dashboard
-│   ├── book_appointment.php # Appointment booking
-│   ├── medical_history.php  # Medical records
-│   └── bills.php            # Bill management
-├── assets/
-│   ├── css/                 # Stylesheets
-│   ├── js/                  # JavaScript files
-│   ├── images/              # Images and icons
-│   └── plugins/             # Third-party plugins
-├── database/
-│   ├── hospital_management.sql # Database structure
-│   └── sample_data.sql      # Sample data
-├── uploads/                 # File uploads
-├── reports/                 # Generated reports
-└── README.md
+├── Client/                    # React frontend (Vite)
+│   ├── src/
+│   │   ├── Pages/
+│   │   │   ├── Login.jsx          # Split-panel login page
+│   │   │   ├── Signup.jsx         # Registration page
+│   │   │   ├── Sidebar.jsx        # Responsive sidebar + mobile drawer
+│   │   │   ├── Manager.jsx        # Manager dashboard
+│   │   │   ├── Pantry.jsx         # Pantry dashboard
+│   │   │   ├── PatientFetch.jsx   # Patients table with search
+│   │   │   ├── DoctorsPage.jsx    # Doctors grid
+│   │   │   ├── FoodChart.jsx      # Diet plans view
+│   │   │   ├── DeliverMeals.jsx   # Delivery assignment
+│   │   │   ├── CreateNewPatient.jsx
+│   │   │   ├── CreateDoctor.jsx
+│   │   │   ├── CreateFoodChart.jsx
+│   │   │   └── CreatePantryPersonal.jsx
+│   │   ├── App.jsx                # Router setup
+│   │   └── index.css              # Global styles + design tokens
+│   └── package.json
+│
+└── Server/                    # Express backend
+    ├── controllers/
+    │   └── user.controller.js     # All business logic
+    ├── model/
+    │   └── user.model.js          # Mongoose schemas (User, Patient, Doctor, FoodChart, PantryStaff, Delivery)
+    ├── router/
+    │   └── user.router.js         # API routes
+    ├── middleware/
+    │   ├── auth.middleware.js      # JWT verification
+    │   └── multer.middleware.js    # File upload handling
+    ├── utils/
+    │   ├── ApiError.js            # Consistent error responses
+    │   ├── ApiResponse.js         # Consistent success responses
+    │   ├── asyncHandler.js        # Async error wrapper
+    │   └── cloudinary.js         # Image upload utility
+    ├── app.js                     # Express app setup
+    └── index.js                   # DB connection + server start
 ```
 
-## 🔧 Configuration
+---
 
+## ⚙️ Setup & Installation
 
-### File Upload Settings
-Configure upload limits in `config/config.php`:
-```php
-define('MAX_FILE_SIZE', 5242880); // 5MB
-define('ALLOWED_EXTENSIONS', ['pdf', 'jpg', 'png', 'docx']);
+### Prerequisites
+- Node.js 18+
+- MongoDB Atlas account (or local MongoDB)
+- Cloudinary account (free tier works)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/Raj4478/Hospital_Management.git
+cd Hospital_Management
 ```
 
-## 📊 Database Schema
+### 2. Configure environment variables
 
-### Key Tables
-- `users` - User authentication and basic info
-- `patients` - Patient-specific information
-- `doctors` - Doctor profiles and specializations
-- `appointments` - Appointment scheduling
-- `medical_records` - Patient medical history
-- `prescriptions` - Medication prescriptions
-- `departments` - Hospital departments
-- `bills` - Billing and payment records
+Create a `.env` file in the **root** directory:
 
-## 🎯 Usage Guide
+```env
+PORT=8000
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net
+CORS_ORIGIN=http://localhost:5173
 
-### For Patients
-1. **Registration**: Sign up with personal and medical information
-2. **Login**: Access your patient portal
-3. **Book Appointment**: Select doctor, date, and time
-4. **View Records**: Access medical history and test results
-5. **Manage Profile**: Update contact and emergency information
+ACCESS_TOKEN_SECRET=your_access_token_secret
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+REFRESH_TOKEN_EXPIRY=10d
 
-### For Doctors
-1. **Login**: Access doctor portal with credentials
-2. **View Schedule**: Check daily appointments and patient list
-3. **Patient Care**: Review patient history and add diagnoses
-4. **Prescriptions**: Create and manage patient prescriptions
-5. **Reports**: Generate medical reports and certificates
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
 
-### For Administrators
-1. **Dashboard**: Monitor system overview and statistics
-2. **User Management**: Add/edit doctor and staff accounts
-3. **System Reports**: Generate financial and operational reports
-4. **Configuration**: Manage hospital settings and departments
+### 3. Install and run the backend
 
-## 🔒 Security Features
+```bash
+cd Server
+npm install
+npm run dev
+# Runs on http://localhost:8000
+```
 
-- **Password Hashing**: Secure password storage using PHP password_hash()
-- **SQL Injection Prevention**: Prepared statements for database queries
-- **Session Management**: Secure session handling and timeout
-- **Access Control**: Role-based permissions and authentication
-- **Data Validation**: Input sanitization and validation
-- **File Upload Security**: Restricted file types and size limits
+### 4. Install and run the frontend
 
-## 📱 Responsive Design
+```bash
+cd Client
+npm install
+npm run dev
+# Runs on http://localhost:5173
+```
 
-The system is fully responsive and works on:
-- Desktop computers
-- Tablets
-- Mobile phones
-- Different screen resolutions
+---
 
-## 🤝 Contributing
+## 🔌 API Endpoints
 
-We welcome contributions! Please follow these guidelines:
+### Auth
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/user/register` | Register new user |
+| POST | `/api/v1/user/login` | Login (returns JWT) |
+| POST | `/api/v1/user/logout` | Logout |
 
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/new-feature
-   ```
-3. **Make your changes**
-4. **Test thoroughly**
-5. **Commit with clear messages**
-   ```bash
-   git commit -m "Add: New appointment reminder feature"
-   ```
-6. **Push to your branch**
-   ```bash
-   git push origin feature/new-feature
-   ```
-7. **Create a Pull Request**
+### Patients
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/user/patientdetail` | Register patient |
+| GET | `/api/v1/user/patientdata` | Get all patients |
+| POST | `/api/v1/user/particularpatient` | Get patient by ID |
 
-### Code Standards
-- Follow PSR-12 coding standards for PHP
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Test all database operations
-- Ensure responsive design for new features
+### Doctors
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/user/registerdoctor` | Register doctor |
+| GET | `/api/v1/user/getalldoctors` | Get all doctors |
+| PATCH | `/api/v1/user/updatedoctor/:doctorId` | Update doctor |
 
-## 🐛 Known Issues & Troubleshooting
+### Diet / Food Chart
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/user/menu` | Create diet plan |
+| GET | `/api/v1/user/menu` | Get all diet plans |
+| PATCH | `/api/v1/user/updatemenu/:menuId` | Update diet plan |
 
-### Common Issues
-1. **Database Connection Error**
-   - Check database credentials in `config/database.php`
-   - Ensure MySQL service is running
+### Pantry & Delivery
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/user/pantrypersonal` | Add pantry staff |
+| GET | `/api/v1/user/pantrydetail` | Get all staff |
+| PATCH | `/api/v1/user/updatestaff` | Update staff status |
+| POST | `/api/v1/user/assigndelivery` | Assign delivery |
+| GET | `/api/v1/user/delivery` | Get all deliveries |
+| POST | `/api/v1/user/deleteObject` | Mark delivery done |
 
-2. **File Upload Issues**
-   - Check folder permissions for `uploads/` directory
-   - Verify PHP upload limits in php.ini
+---
 
-3. **Email Not Sending**
-   - Verify SMTP configuration
-   - Check email credentials and app passwords
+## 👤 Roles & Access
 
-### Support
-- Check the [Issues](https://github.com/Raj4478/Hospital_Management/issues) page
-- Create a new issue with detailed error information
-- Include PHP and MySQL version information
+| Role | Access |
+|---|---|
+| **Manager** | Full access — patients, doctors, diet plans, deliveries, all create forms |
+| **Pantry** | Patients, diet plans, delivery assignment, pantry staff management |
 
+Set the role during registration. Login routes to the correct dashboard automatically.
 
+---
 
+## 📱 Mobile Support
+
+Fully responsive across all screen sizes:
+- **Desktop** — persistent sidebar navigation
+- **Mobile** — hamburger menu with slide-in drawer
+- Touch-friendly tap targets on all interactive elements
+- iOS input zoom prevention
+
+---
+
+## 🐛 Bug Fixes (v2.0)
+
+The following critical bugs were fixed in the latest version:
+
+- `FoodChart` model was missing `mongoose.Schema()` wrapper — all food chart creates silently failed
+- MongoDB URI used `\\Hospital` (escape sequence) instead of `/Hospital`
+- `ApiError` used `StatusCode` (capital S) — Express requires `statusCode` (lowercase)
+- Server crashed when image not provided in `registerUser`, `foodChartMenu`, `pantrypersonal` — null checks added
+- Credentials logged to console in `cloudinary.js` — removed
+- `eveningIngrediends` typo fixed consistently across model and controller
+
+---
 
 ## 👨‍💻 Author
 
-**Raj4478**
+**Rajeshwar Singh**
 - GitHub: [@Raj4478](https://github.com/Raj4478)
-- LinkedIn: [https://www.linkedin.com/in/rajeshwar-singh-b77075271]
-
-
-## 📞 Support
-
-For support and queries:
-- 📧 Email: support@yourhospital.com
-- 💬 Issues: [GitHub Issues](https://github.com/Raj4478/Hospital_Management/issues)
-- 📚 Documentation: Check the `/docs` folder for detailed guides
+- LinkedIn: [Rajeshwar Singh](https://www.linkedin.com/in/rajeshwar-singh-b77075271)
 
 ---
 
-⭐ **Star this repository if you found it helpful!**
-
-*Transforming healthcare management through technology* 🚀
-
----
-
-**Disclaimer**: This system is designed for educational and demonstration purposes. Please ensure compliance with healthcare regulations (HIPAA, GDPR, etc.) before using in production environments.
+⭐ Star this repo if you found it useful!
