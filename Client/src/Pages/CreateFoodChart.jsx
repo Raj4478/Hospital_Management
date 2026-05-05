@@ -1,218 +1,108 @@
 import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/ReactToastify.css";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Sidebar from "./Sidebar";
 
 const CreateFoodChart = () => {
-  const [image1, setImage1] = useState();
-  const [image2, setImage2] = useState();
-  const [image3, setImage3] = useState();
-
-  const [preview1, setPreview1] = useState(null);
-  const [preview2, setPreview2] = useState(null);
-  const [preview3, setPreview3] = useState(null);
-  const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    morning: "", evening: "", nightMeal: "",
+    morningIngredients: "", eveningIngredients: "", nightIngredients: "",
+    specialInstructions: ""
+  });
+  const [images, setImages] = useState({ coverImage1: null, coverImage2: null, coverImage3: null });
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm();
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  const notifySuccess = () =>
-    toast.success("Menu submitted successfully!", {
-      position: "top-center",
-      autoClose: 4000,
-      theme: "dark",
-    });
-
-  const notifyError = (msg) =>
-    toast.error(msg || "Submission failed.", {
-      position: "top-center",
-      autoClose: 4000,
-      theme: "dark",
-    });
-
-  const handleImageUpload = (file, setter, previewSetter) => {
-    if (file) {
-      setter(file);
-      previewSetter(URL.createObjectURL(file));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.morning || !form.evening || !form.nightMeal) {
+      toast.error("Morning, evening, and night meal are required");
+      return;
     }
-  };
-
-  const onSubmit = async (data) => {
     setLoading(true);
-
-    const payload = {
-      morning: data.morning,
-      evening: data.evening,
-      nightMeal: data.night,
-      morningIngriends: data.morningIngredients,
-      eveningIngriends: data.eveningIngredients,
-      nightIngriends: data.nightIngredients,
-      coverImage1: image1,
-      coverImage2: image2,
-      coverImage3: image3,
-      specialInstructions: data.specialInstructions,
-    };
+    const formData = new FormData();
+    Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+    if (images.coverImage1) formData.append("coverImage1", images.coverImage1);
+    if (images.coverImage2) formData.append("coverImage2", images.coverImage2);
+    if (images.coverImage3) formData.append("coverImage3", images.coverImage3);
 
     try {
-      await axios.post("api/v1/user/foodchartmenu", payload, {
-        headers: { "content-Type": "multipart/form-data" },
+      await axios.post("/api/v1/user/menu", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
-
-      notifySuccess();
-      reset();
-      setImage1(null); setImage2(null); setImage3(null);
-      setPreview1(null); setPreview2(null); setPreview3(null);
-    } catch (error) {
-      notifyError(error.message);
+      toast.success("Diet plan created!");
+      setTimeout(() => navigate("/menu"), 1000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to create diet plan");
     } finally {
       setLoading(false);
     }
   };
 
+  const meals = [
+    { key: "morning", label: "🌅 Morning Meal *", imgKey: "coverImage1", ingKey: "morningIngredients" },
+    { key: "evening", label: "🌤️ Evening Meal *", imgKey: "coverImage2", ingKey: "eveningIngredients" },
+    { key: "nightMeal", label: "🌙 Night Meal *", imgKey: "coverImage3", ingKey: "nightIngredients" },
+  ];
+
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 py-10"
-      >
-        {/* Return Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-6 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded shadow font-semibold self-start"
-        >
-          ← Return
-        </button>
+    <div className="flex min-h-screen bg-slate-50">
+      <ToastContainer position="top-center" autoClose={3000} />
+      <Sidebar role="Manager" />
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="page-header">
+          <button onClick={() => navigate(-1)} className="text-sm text-slate-400 hover:text-slate-600 mb-3 block">← Back</button>
+          <h1>Create Diet Plan</h1>
+          <p>Set up a meal plan for patients</p>
+        </div>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-8 space-y-8"
-        >
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800">HOSPITAL MANAGEMENT</h2>
-            <p className="text-gray-500 mt-1">📅 Fill in Today’s Menu</p>
-          </div>
+        <div className="card max-w-2xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {meals.map(meal => (
+              <div key={meal.key} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h3 className="font-semibold text-slate-700 mb-3">{meal.label}</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Meal Name</label>
+                    <input name={meal.key} value={form[meal.key]} onChange={handleChange}
+                      placeholder="e.g. Oatmeal with fruits" className="form-input" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Ingredients</label>
+                    <input name={meal.ingKey} value={form[meal.ingKey]} onChange={handleChange}
+                      placeholder="List ingredients..." className="form-input" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Meal Photo <span className="text-slate-400">(optional)</span></label>
+                    <input type="file" accept="image/*"
+                      onChange={e => setImages(i => ({ ...i, [meal.imgKey]: e.target.files[0] }))}
+                      className="form-input text-sm" />
+                  </div>
+                </div>
+              </div>
+            ))}
 
-          {[{
-            title: "MORNING SCHEDULE",
-            name: "morning",
-            ing: "morningIngredients",
-            image: "Image1",
-            setImage: setImage1,
-            setPreview: setPreview1,
-            preview: preview1
-          }, {
-            title: "EVENING SCHEDULE",
-            name: "evening",
-            ing: "eveningIngredients",
-            image: "Image2",
-            setImage: setImage2,
-            setPreview: setPreview2,
-            preview: preview2
-          }, {
-            title: "NIGHT SCHEDULE",
-            name: "night",
-            ing: "nightIngredients",
-            image: "Image3",
-            setImage: setImage3,
-            setPreview: setPreview3,
-            preview: preview3
-          }].map((block, index) => (
-            <section key={index}>
-              <h3 className="text-lg font-bold text-yellow-600 mb-2">{block.title}</h3>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Special Instructions</label>
+              <textarea name="specialInstructions" value={form.specialInstructions} onChange={handleChange}
+                placeholder="Any dietary restrictions or special notes..." rows={3}
+                className="form-input resize-none" />
+            </div>
 
-              <label className="block font-medium">Dish Name</label>
-              <input
-                {...register(block.name, { required: "Dish name is required" })}
-                className="w-full border px-3 py-2 rounded"
-              />
-              {errors[block.name] && <p className="text-sm text-red-500">{errors[block.name].message}</p>}
-
-              <label className="block font-medium mt-3">Ingredients Used</label>
-              <input
-                {...register(block.ing, { required: "Ingredients are required" })}
-                className="w-full border px-3 py-2 rounded"
-              />
-              {errors[block.ing] && <p className="text-sm text-red-500">{errors[block.ing].message}</p>}
-
-              <label className="block font-medium mt-3">Cover {block.image}</label>
-              <input
-                type="file"
-                onChange={(e) => handleImageUpload(e.target.files[0], block.setImage, block.setPreview)}
-                className="w-full"
-              />
-              {block.preview && (
-                <img
-                  src={block.preview}
-                  alt="Preview"
-                  className="w-32 h-32 mt-2 object-cover rounded shadow"
-                />
-              )}
-            </section>
-          ))}
-
-          <section>
-            <label className="block font-medium">Special Instructions</label>
-            <input
-              {...register("specialInstructions", { required: "Instructions required" })}
-              className="w-full border px-3 py-2 rounded"
-            />
-            {errors.specialInstructions && (
-              <p className="text-sm text-red-500">{errors.specialInstructions.message}</p>
-            )}
-          </section>
-
-          <div className="text-center">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`text-white py-2 px-6 rounded-lg transition ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    ></path>
-                  </svg>
-                  Submitting...
-                </span>
-              ) : (
-                "Submit Menu"
-              )}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-      <ToastContainer />
-    </>
+            <div className="flex gap-3">
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? "Creating..." : "Create Diet Plan"}
+              </button>
+              <button type="button" onClick={() => navigate(-1)} className="btn-outline">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 };
 

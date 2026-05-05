@@ -1,197 +1,90 @@
 import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
-import { motion } from "framer-motion";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Sidebar from "./Sidebar";
 
-const CreatePantryStaff = () => {
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
-
+const CreatePantryPersonal = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name: "", contactInfo: "", deliveryStatus: "" });
+  const [image, setImage] = useState(null);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm();
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  const notifySuccess = () =>
-    toast.success("✅ Staff created successfully!", {
-      position: "top-center",
-      theme: "dark",
-    });
-
-  const notifyError = (msg) =>
-    toast.error(msg || "Something went wrong", {
-      position: "top-center",
-      theme: "dark",
-    });
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    if (file) setPreview(URL.createObjectURL(file));
-  };
-
-  const onSubmit = async (data) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.contactInfo || !form.deliveryStatus) {
+      toast.error("All fields are required");
+      return;
+    }
     setLoading(true);
-    const jsons = {
-      name: data.name,
-      deliveryStatus: "available", // Hardcoded
-      contactInfo: data.contactinfo,
-      pantrypersonal: image,
-    };
+    const formData = new FormData();
+    Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+    if (image) formData.append("pantrypersonal", image);
 
     try {
-      const url = "api/v1/user/pantry";
-      const formdata = new FormData();
-      formdata.append("coverImage", image);
-
-      axios({
-        method: "post",
-        url: url,
-        data: jsons,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
-        .then((res) => {
-          notifySuccess();
-          reset();
-          setImage(null);
-          setPreview(null);
-        })
-        .catch((err) => notifyError(err.message));
+      await axios.post("/api/v1/user/pantrypersonal", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      toast.success("Pantry staff added!");
+      setTimeout(() => navigate("/pantry"), 1000);
     } catch (err) {
-      notifyError(err.message);
+      toast.error(err.response?.data?.message || "Failed to add staff");
     } finally {
-      setTimeout(() => setLoading(false), 2000);
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="min-h-screen bg-pink-50 flex flex-col items-center justify-center px-6 py-12"
-      >
-        {/* Return Button */}
-        <div className="w-full max-w-xl mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-sm text-gray-600 hover:text-blue-600 font-semibold"
-          >
-            ← Return
-          </button>
+    <div className="flex min-h-screen bg-slate-50">
+      <ToastContainer position="top-center" autoClose={3000} />
+      <Sidebar role="Pantry" />
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="page-header">
+          <button onClick={() => navigate(-1)} className="text-sm text-slate-400 hover:text-slate-600 mb-3 block">← Back</button>
+          <h1>Add Pantry Staff</h1>
+          <p>Register a new pantry or delivery staff member</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="w-full max-w-xl bg-white p-8 shadow-xl rounded-3xl"
-        >
-          <h3 className="text-3xl font-bold text-center text-red-500 font-great">
-            Hospital <span className="text-amber-400">Management</span>
-          </h3>
-          <p className="text-center text-red-300 mt-2">
-            Please Enter the Staff Details Here
-          </p>
+        <div className="card max-w-lg">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name *</label>
+              <input name="name" value={form.name} onChange={handleChange}
+                placeholder="Staff member name" className="form-input" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Contact Information *</label>
+              <input name="contactInfo" value={form.contactInfo} onChange={handleChange}
+                placeholder="+91 98765 43210" className="form-input" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Delivery Status *</label>
+              <select name="deliveryStatus" value={form.deliveryStatus} onChange={handleChange} className="form-input">
+                <option value="">Select status</option>
+                <option value="available">Available</option>
+                <option value="on delivery">On Delivery</option>
+                <option value="off duty">Off Duty</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Photo <span className="text-slate-400">(optional)</span></label>
+              <input type="file" accept="image/*" onChange={e => setImage(e.target.files[0])} className="form-input text-sm" />
+            </div>
 
-          {/* Name */}
-          <div className="mt-6">
-            <label className="block text-sm font-semibold text-sky-500 mb-1">
-              Name
-            </label>
-            <input
-              {...register("name", {
-                required: "Name is required",
-                minLength: { value: 3, message: "Minimum 3 characters" },
-              })}
-              className="w-full border border-gray-300 px-3 py-2 rounded"
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
-            )}
-          </div>
-
-          {/* Contact Info */}
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-sky-500 mb-1">
-              Contact Info
-            </label>
-            <input
-              {...register("contactinfo", {
-                required: "Contact info is required",
-                minLength: { value: 3, message: "Minimum 3 characters" },
-              })}
-              className="w-full border border-gray-300 px-3 py-2 rounded"
-            />
-            {errors.contactinfo && (
-              <p className="text-sm text-red-500 mt-1">
-                {errors.contactinfo.message}
-              </p>
-            )}
-          </div>
-
-          {/* Delivery Status (readonly) */}
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-sky-500 mb-1">
-              Delivery Status
-            </label>
-            <input
-              value="available"
-              readOnly
-              disabled
-              className="w-full border border-gray-200 px-3 py-2 rounded bg-gray-100"
-            />
-          </div>
-
-          {/* Image Upload */}
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-sky-500 mb-1">
-              Image
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="block text-sm"
-            />
-            {preview && (
-              <img
-                src={preview}
-                alt="Preview"
-                className="mt-3 h-32 w-32 object-cover rounded-full border"
-              />
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="mt-6">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2 text-lg font-bold rounded ${
-                loading
-                  ? "bg-gray-300 cursor-not-allowed text-gray-500"
-                  : "bg-red-300 hover:bg-red-400 text-white transition"
-              }`}
-            >
-              {loading ? "Submitting..." : "Submit Data"}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-
-      <ToastContainer />
-    </>
+            <div className="flex gap-3 pt-2">
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? "Adding..." : "Add Staff Member"}
+              </button>
+              <button type="button" onClick={() => navigate(-1)} className="btn-outline">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 };
 
-export default CreatePantryStaff;
+export default CreatePantryPersonal;

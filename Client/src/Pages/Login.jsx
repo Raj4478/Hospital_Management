@@ -1,184 +1,135 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import { motion } from "framer-motion";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Login = () => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-
+  const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const notifySuccess = () =>
-    toast.success("🦄 Successfully Logged In", {
-      position: "top-center",
-      autoClose: 5000,
-      theme: "dark",
-    });
-
-  const notifyError = (msg) =>
-    toast.error(msg, {
-      position: "top-center",
-      autoClose: 5000,
-      theme: "dark",
-    });
-
   const onSubmit = async (data) => {
-    const jsons = {
-      email: data.Email,
-      password: data.Password,
-      AccountType: data.AccountType,
-    };
-
     setLoading(true);
     try {
-      const urls = "/api/v1/user/login";
-      const res = await axios.post(urls, jsons);
-      console.log("id is",res.data.message.user._id);
-    
-      notifySuccess();
-    
-      const userId = res.data.message.user._id; // adjust based on your backend response
-    
-      if (jsons.AccountType === "Manager") {
-        navigate("/manager", { state: { userId } });
-      } else {
-        navigate("/pantry", { state: { userId } });
-      }
+      const res = await axios.post("/api/v1/user/login", {
+        email: data.email,
+        password: data.password,
+        AccountType: data.AccountType,
+      });
+      const userId = res.data.data?.user?._id || res.data.message?.user?._id;
+      toast.success("Login successful!");
+      setTimeout(() => {
+        if (data.AccountType === "Manager") navigate("/manager", { state: { userId } });
+        else navigate("/pantry", { state: { userId } });
+      }, 800);
     } catch (error) {
-      notifyError(error.message);
+      toast.error(error.response?.data?.message || "Login failed. Check your credentials.");
     } finally {
       setLoading(false);
     }
-    
   };
 
   return (
-    <>
-      {/* Loading Spinner */}
-      {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
-          <div className="w-16 h-16 border-4 border-blue-500 border-dashed rounded-full animate-spin"></div>
-        </div>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100 flex items-center justify-center p-4">
+      <ToastContainer position="top-center" autoClose={3000} />
 
-      <motion.div
-        initial={{ x: -70 }}
-        animate={{ x: 0 }}
-        transition={{ delay: 0.5, duration: 1 }}
-        className="grid min-h-screen grid-cols-1 md:grid-cols-2 bg-white"
-      >
-        <motion.form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col justify-center items-center px-8 py-12 bg-white"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 1 }}
-        >
-          <div className="w-full max-w-md space-y-6">
-            <h3 className="text-4xl font-bold text-blue-700">
-              Hospital<span className="text-green-500">Login</span>
-            </h3>
-            <p className="text-gray-600">
-              Welcome back! Please log in to continue.
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex">
+        {/* Left panel */}
+        <div className="hidden md:flex flex-col justify-between w-1/2 bg-gradient-to-br from-sky-600 to-blue-700 p-10 text-white">
+          <div>
+            <div className="flex items-center gap-3 mb-10">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">🏥</div>
+              <span className="text-xl font-bold">MediCare HMS</span>
+            </div>
+            <h2 className="text-3xl font-bold leading-tight mb-4">
+              Streamline your hospital operations
+            </h2>
+            <p className="text-sky-100 text-sm leading-relaxed">
+              Manage patients, doctors, diet plans, and delivery staff all from one powerful dashboard.
             </p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { icon: "👥", text: "Patient record management" },
+              { icon: "👨‍⚕️", text: "Doctor & staff coordination" },
+              { icon: "🍽️", text: "Diet & meal tracking" },
+              { icon: "🚚", text: "Delivery assignment system" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm text-sky-100">
+                <span>{item.icon}</span>
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
+        {/* Right panel */}
+        <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col justify-center">
+          <div className="md:hidden flex items-center gap-2 mb-8">
+            <span className="text-2xl">🏥</span>
+            <span className="text-xl font-bold text-sky-700">MediCare HMS</span>
+          </div>
+
+          <h3 className="text-2xl font-bold text-slate-800 mb-1">Welcome back</h3>
+          <p className="text-slate-500 text-sm mb-8">Sign in to your account to continue</p>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
               <input
-                {...register("Email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^\S+@\S+$/i,
-                    message: "Invalid email format",
-                  },
-                })}
-                className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring focus:ring-blue-200"
+                {...register("email", { required: "Email is required", pattern: { value: /^\S+@\S+$/i, message: "Invalid email" } })}
+                type="email"
+                placeholder="doctor@hospital.com"
+                className="form-input"
               />
-              {errors.Email && (
-                <p className="text-sm text-red-600">{errors.Email.message}</p>
-              )}
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
               <input
+                {...register("password", { required: "Password is required", minLength: { value: 6, message: "Minimum 6 characters" } })}
                 type="password"
-                {...register("Password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 8,
-                    message: "Minimum 8 characters required",
-                  },
-                })}
-                className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring focus:ring-blue-200"
+                placeholder="••••••••"
+                className="form-input"
               />
-              {errors.Password && (
-                <p className="text-sm text-red-600">
-                  {errors.Password.message}
-                </p>
-              )}
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Account Type
-              </label>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
               <select
+                {...register("AccountType", { required: "Please select a role" })}
                 defaultValue=""
-                {...register("AccountType", { required: "Select a role" })}
-                className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring focus:ring-blue-200"
+                className="form-input"
               >
-                <option value="" disabled>
-                  Select Account Type
-                </option>
+                <option value="" disabled>Select your role</option>
                 <option value="Manager">Manager</option>
-                <option value="Pantry">PantryStaff</option>
+                <option value="Pantry">Pantry Staff</option>
                 <option value="Doctor">Doctor</option>
               </select>
-              {errors.AccountType && (
-                <p className="text-sm text-red-600">
-                  {errors.AccountType.message}
-                </p>
-              )}
+              {errors.AccountType && <p className="text-red-500 text-xs mt-1">{errors.AccountType.message}</p>}
             </div>
 
-            <div className="text-sm text-center">
-              New here?{" "}
-              <Link to="/signup" className="text-blue-500 hover:underline">
-                Create an account
-              </Link>
-            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full py-2.5 mt-2">
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Signing in...
+                </span>
+              ) : "Sign in →"}
+            </button>
+          </form>
 
-            <input
-              type="submit"
-              value="Log In"
-              className="w-full py-2 mt-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700"
-            />
-          </div>
-        </motion.form>
-
-        <motion.div
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          transition={{ delay: 0.5, duration: 1 }}
-          className="hidden md:block bg-cover bg-center"
-          style={{ backgroundImage: "url('/hospital-doctor.png')" }}
-        ></motion.div>
-      </motion.div>
-
-      <ToastContainer />
-    </>
+          <p className="text-center text-sm text-slate-500 mt-6">
+            Need an account?{" "}
+            <a href="/signup" className="text-sky-600 font-semibold hover:underline">Register here</a>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 

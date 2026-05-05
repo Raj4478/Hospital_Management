@@ -1,260 +1,92 @@
-import React from "react";
-import { useForm, Controller } from "react-hook-form";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/ReactToastify.css";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const SignUp = () => {
-  const [image, useImage] = useState();
-
+const Signup = () => {
+  const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    control,
-    formState: { errors },
-  } = useForm({ defaultValues: { AccountType: ["Doctor"] } });
-
-  const loggedin = () =>
-    toast("🦄 You have Successfully Signed Up", {
-      position: "top-center",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "dark",
-      progress: undefined,
-    });
-
-  const error1 = (einput) =>
-    toast.error(einput, {
-      position: "top-center",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-    });
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (data) => {
-    var jsons = {
-      username: data.Username,
-      fullName: data.Name,
-      password: data.Password,
-      email: data.Email,
-      coverImage: image,
-      AccountType: data.exampleRequired,
-    };
-    console.log("data");
-    
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("fullName", data.fullName);
+    formData.append("email", data.email);
+    formData.append("username", data.username);
+    formData.append("password", data.password);
+    formData.append("AccountType", data.AccountType);
+    if (data.coverImage?.[0]) formData.append("coverImage", data.coverImage[0]);
 
     try {
-      const urls = "/api/v1/user/register";
-
-      console.log(data);
-      console.log(image);
-
-      const formdata = new FormData();
-      formdata.append("coverImage", jsons);
-      axios({
-        method: "post",
-        url: urls,
-        data: jsons,
-        headers: {
-          "content-Type": "multipart/form-data",
-        },
-      })
-        .then((res) => console.log(res.data.message))
-        .then(loggedin())
-        .catch((err) => console.log(err));
+      await axios.post("/api/v1/user/register", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Account created! Please log in.");
+      setTimeout(() => navigate("/login"), 1000);
     } catch (error) {
-      console.log(error.message);
-      error1(error.message);
+      toast.error(error.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
-    setTimeout(() => {
-      //
-       navigate("/login")
-    }, 6000);
   };
 
   return (
-    <>
-      <motion.div
-        initial={{ x: -70 }}
-        animate={{ x: 0 }}
-        transition={{ delay: 0.5, duration: 1 }}
-        className="grid grid-cols-2  max-[900px]:  h-screen "
-      >
-        <div className=" bg-pic1 bg-cover"></div>
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100 flex items-center justify-center p-4">
+      <ToastContainer position="top-center" autoClose={3000} />
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8">
+        <div className="flex items-center gap-2 mb-8">
+          <span className="text-2xl">🏥</span>
+          <span className="text-xl font-bold text-sky-700">MediCare HMS</span>
+        </div>
+        <h3 className="text-2xl font-bold text-slate-800 mb-1">Create account</h3>
+        <p className="text-slate-500 text-sm mb-8">Register as a hospital staff member</p>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className=" justify-center  bg bg-var3   max-[900px]:w-screen   text-black items-center grid-flow-row"
-        >
-          <div className="  p-16  grid grid-flow-row justify-center py-40    ">
-            <h3 className="font-great text-red-400 text-3xl">
-              Hospital <span className="text-amber-400">Management</span>
-            </h3>
-            <h5 className="mt-3  font-mono text-lg text-red-300">
-              Create an Account.
-            </h5>
-
-            <p className="mt-3 text-red-300">
-              Create Account to accessthe Hospital Services and many more.
-            </p>
-
-            <div className="grid grid-flow-row w-5/5 text-black  mt-6  ">
-              <label htmlFor="Username" className="font-new text-sky-500">
-                UserName
-              </label>
-              <input
-                {...register("Username", {
-                  required: true,
-                  minLength: {
-                    value: 3,
-                    message: "Please enter a vaild Username",
-                  },
-                  maxLength: {
-                    value: 30,
-                    message: "Please enter a valid username",
-                  },
-                })}
-                className=" border pl-1 text-black bg-transparent backdrop-blur-xl border-black  py-2 "
-              />
-              {errors.Name && (
-                <div className="mt-2 font-semibold text-slate-600">
-                  {errors.Name.message}
-                </div>
-              )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {[
+            { name: "fullName", label: "Full Name", placeholder: "Dr. John Smith", type: "text" },
+            { name: "email", label: "Email", placeholder: "john@hospital.com", type: "email" },
+            { name: "username", label: "Username", placeholder: "johnsmith", type: "text" },
+            { name: "password", label: "Password", placeholder: "••••••••", type: "password" },
+          ].map(({ name, label, placeholder, type }) => (
+            <div key={name}>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+              <input {...register(name, { required: `${label} is required` })}
+                type={type} placeholder={placeholder} className="form-input" />
+              {errors[name] && <p className="text-red-500 text-xs mt-1">{errors[name].message}</p>}
             </div>
-            <div className="grid grid-flow-row w-5/5 mt-6  ">
-              <label htmlFor="Name" className="font-new text-sky-500">
-                Name
-              </label>
-              <input
-                {...register("Name", {
-                  required: true,
-                  minLength: { value: 3, message: "Min Length is 3" },
-                  maxLength: { value: 30, message: "Max value reached" },
-                })}
-                className=" border pl-1 border-black text-black bg-transparent backdrop-blur-xl py-2 "
-              />
-              {errors.Name && (
-                <div className="mt-2 font-semibold text-slate-600">
-                  {errors.Name.message}
-                </div>
-              )}
-            </div>
-            <div className="grid grid-flow-row w-5/5 mt-6  ">
-              <label htmlFor="Email" className="font-new text-sky-500">
-                Email
-              </label>
-              <input
-                {...register("Email", {
-                  required: true,
-                  minLength: { value: 3, message: "Min Length is 3" },
-                  maxLength: { value: 30, message: "Max value reached" },
-                })}
-                className=" border pl-1 border-black text-black bg-transparent backdrop-blur-xl  py-2 "
-              />
-              {errors.Email && (
-                <div className="mt-2 font-semibold text-slate-600">
-                  {errors.Email.message}
-                </div>
-              )}
-            </div>
+          ))}
 
-            <select
-              className=" text-sky-400 font-new py-2 my-3"
-              id="selectmethod"
-              defaultValue=""
-              name="exampleRequired"
-              {...register("exampleRequired", { required: true })}
-            >
-              <option value="" disabled>
-                Account Type
-              </option>
-              
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+            <select {...register("AccountType", { required: "Select a role" })} defaultValue="" className="form-input">
+              <option value="" disabled>Select role</option>
               <option value="Manager">Manager</option>
-              <option value="Pantry">Pantry</option>
+              <option value="Pantry">Pantry Staff</option>
+              <option value="Doctor">Doctor</option>
             </select>
-            {errors.exampleRequired && (
-              <span className="formError errorMssg">
-                This field is required
-              </span>
-            )}
-
-            <div className="grid grid-flow-row w-5/5 pt-8">
-              <label htmlFor="Password" className="font-new text-sky-500">
-                Password
-              </label>
-              <input
-                type="password"
-                {...register("Password", {
-                  required: true,
-                  minLength: { value: 8, message: "Min Length is 8" },
-                  maxLength: { value: 20, message: "Max value reached" },
-                })}
-                className=" border pl-1 text-black  border-black py-2 bg-transparent backdrop-blur-xl"
-              />
-              {errors.Password && (
-                <div className="mt-2 font-semibold text-slate-600">
-                  {errors.Password.message}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 text-sky-500">
-              <label htmlFor="Upload" className="font-new">
-                Profile Image
-              </label>
-              <input
-                type="file"
-                name="Upload"
-                onChange={(e) => useImage(e.target.files[0])}
-              />
-            </div>
-
-            <p className="mt-10 p-2 text-sky-500">
-              Already have an Account?{" "}
-              <Link
-                to="/login"
-                className="text-red-300 border-b border-white duration-500 hover:border-red-300"
-              >
-                Log In
-              </Link>
-            </p>
-            <input
-              type="submit"
-              value="Create Account"
-              className=" text-2xl font-new text-red-300  duration-500 hover:text-white hover:bg-red-300 rounded-md py-2  border"
-            />
+            {errors.AccountType && <p className="text-red-500 text-xs mt-1">{errors.AccountType.message}</p>}
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Profile Photo <span className="text-slate-400">(optional)</span></label>
+            <input {...register("coverImage")} type="file" accept="image/*" className="form-input text-sm" />
+          </div>
+
+          <button type="submit" disabled={loading} className="btn-primary w-full py-2.5 mt-2">
+            {loading ? "Creating account..." : "Create account →"}
+          </button>
         </form>
-      </motion.div>
-      <ToastContainer
-        position="top-center"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
-    </>
+
+        <p className="text-center text-sm text-slate-500 mt-6">
+          Already have an account?{" "}
+          <Link to="/login" className="text-sky-600 font-semibold hover:underline">Sign in</Link>
+        </p>
+      </div>
+    </div>
   );
 };
 
-export default SignUp;
+export default Signup;

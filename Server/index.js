@@ -1,28 +1,23 @@
 import mongoose from "mongoose";
 import app from "./app.js";
 import dotenv from "dotenv";
-dotenv.config({ path: "../.env" }); // ✅ explicitly load .env from root
+dotenv.config({ path: "../.env" });
 
 const connectDB = async() => {
- 
     try {
-        const connectioninstance = await mongoose.connect(`${process.env.MONGODB_URI}\Hospital`)
-          console.log((`\n MongoDB connected !! DB Host : ${connectioninstance.connection.host}`));
-          
+        // FIX: was \\Hospital (escape sequence) — changed to /Hospital
+        const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}/Hospital`);
+        console.log(`MongoDB connected. Host: ${connectionInstance.connection.host}`);
     } catch (error) {
-        console.log("MONGODB connection Failed",error);
-        process.exit(1)
-        
+        console.log("MongoDB connection failed:", error.message);
+        process.exit(1);
     }
-}
-console.log("Cloudinary api Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("MongoDB api URI:", process.env.MONGODB_URI);
+};
 
-
-connectDB().then(()=>{
+connectDB().then(() => {
     app.listen(process.env.PORT || 8000, () => {
-        console.log(`⚙️ Server is running at port : ${process.env.PORT}`)
-    })
-}).catch((err)=>{
-    console.log("MONGO db connection failed !!! ", err);
-})
+        console.log(`Server running on port: ${process.env.PORT || 8000}`);
+    });
+}).catch((err) => {
+    console.log("MongoDB connection failed:", err.message);
+});

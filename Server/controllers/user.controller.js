@@ -1,704 +1,306 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
-import { Patient, User,FoodChart, PantryStaff,Delivery,Doctor } from "../model/user.model.js"
+import { Patient, User, FoodChart, PantryStaff, Delivery, Doctor } from "../model/user.model.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { ApiError } from "../utils/ApiError.js"
-//import jwt from "jsonwebtoken"
 import mongoose from "mongoose"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 
 const generateAccessAndRefreshToken = async(userId) => {
     try {
-        const user = await User.findById(userId)
-        
-        
-        const accessToken = user.generateAccessToken()
-
-        console.log("accessToken is",accessToken);
-        const refreshToken = user.generateRefreshToken()
-        
-        console.log("refreshToken is",refreshToken);
-
-        
-
-        user.refreshToken = refreshToken
-
-        await user.save({validateBeforeSave : false})
-
-        return {accessToken,refreshToken}
-
-
+        const user = await User.findById(userId);
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+        return { accessToken, refreshToken };
     } catch (error) {
-        
-        throw new ApiError(500,"Something went wrong while generating refresh and access token")
+        throw new ApiError(500, "Something went wrong while generating tokens");
     }
-}
+};
 
-const registerUser = asyncHandler( async (req, res) => {
-    
+const registerUser = asyncHandler(async (req, res) => {
+    const { fullName, email, username, password, AccountType } = req.body;
 
-
-    const {fullName, email, username, password,AccountType} = req.body
-
-    console.log("fullname is ",fullName);
-    
- 
-    
-    
-    
-
-    if (
-        [fullName, email, username, password,AccountType].some((field) => field?.trim() === "")
-    ) {
-        throw new ApiError(400, "All fields are required")
+    if ([fullName, email, username, password, AccountType].some((field) => !field || field.trim() === "")) {
+        throw new ApiError(400, "All fields are required");
     }
 
-    const existedUser = await User.findOne({
-        $or: [{ username }, { email }]
-    })
+    const existedUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existedUser) throw new ApiError(409, "User with email or username already exists");
 
-    if (existedUser) {
-        throw new ApiError(409, "User with email or username already exists")
+    // FIX: null check before accessing image path
+    let coverImageUrl = "";
+    if (req.files?.coverImage?.[0]?.path) {
+        const coverImage = await uploadOnCloudinary(req.files.coverImage[0].path);
+        coverImageUrl = coverImage?.url || "";
     }
-    console.log("req body is ",req.files);
-
-   
-   let coverImageLocalPath;
-
-   
-
-   
-    coverImageLocalPath = req.files.coverImage[0].path
-    console.log("coverImageLocalPath",coverImageLocalPath);
-    
-   
- 
-   const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-   
-   console.log("coverImage",coverImage);
 
     const user = await User.create({
         fullName,
-        email, 
+        email,
         password,
         username: username.toLowerCase(),
-        coverImage: coverImage?.url || "",
+        coverImage: coverImageUrl,
         AccountType,
-    })
+    });
 
-    const createdUser = await User.findById(user._id).select(
-         "-password -refreshToken"
-    )
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+    if (!createdUser) throw new ApiError(500, "Something went wrong while registering the user");
 
-    if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while registering the user")
-    }
-
-    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered Successfully")
-    )
-
-} )
-
+    return res.status(201).json(new ApiResponse(201, createdUser, "User registered successfully"));
+});
 
 const registerDoctor = asyncHandler(async (req, res) => {
-    const {
-    fullName,
-    email,
-    specialization,
-    website,
-    Contact_Number,
-    bio,
-    age,
-    experience,
-    
-    } = req.body;
-    
-    if (
-    [fullName, email, specialization, Contact_Number].some(
-    (field) => typeof field === "undefined" || field?.trim() === ""
-    )
-    ) {
-    throw new ApiError(400, "All required fields must be filled");
+    const { fullName, email, specialization, website, Contact_Number, bio, age, experience } = req.body;
+
+    if ([fullName, email, specialization, Contact_Number].some((field) => !field || field.trim() === "")) {
+        throw new ApiError(400, "All required fields must be filled");
     }
-    
+
     const existingDoctor = await Doctor.findOne({ email });
-    if (existingDoctor) {
-    throw new ApiError(409, "Doctor with this email already exists");
-    }
-    
+    if (existingDoctor) throw new ApiError(409, "Doctor with this email already exists");
+
     let coverImageUrl = "";
     if (req.files?.doctorImage?.[0]?.path) {
-    const localPath = req.files.doctorImage[0].path;
-    const cloudImage = await uploadOnCloudinary(localPath);
-    coverImageUrl = cloudImage?.url || "";
+        const cloudImage = await uploadOnCloudinary(req.files.doctorImage[0].path);
+        coverImageUrl = cloudImage?.url || "";
     }
-    
+
     const doctor = await Doctor.create({
-    fullName,
-    email,
-    specialization,
-    website,
-    Contact_Number,
-    bio,
-    age,
-    experience,
-    coverImage: coverImageUrl,
+        fullName, email, specialization, website,
+        Contact_Number, bio, age, experience,
+        coverImage: coverImageUrl,
     });
-    
-    if (!doctor) {
-    throw new ApiError(500, "Failed to register doctor");
-    }
-    
-    return res
-    .status(201)
-    .json(new ApiResponse(201, doctor, "Doctor registered successfully"));
-    });
-    
-    
-  const getAllDoctors = asyncHandler(async (req, res) => {
+
+    return res.status(201).json(new ApiResponse(201, doctor, "Doctor registered successfully"));
+});
+
+const getAllDoctors = asyncHandler(async (req, res) => {
     const doctors = await Doctor.find({});
-  
-    if (!doctors || doctors.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No doctors found",
-      });
-    }
-  
-    return res.status(200).json({
-      success: true,
-      message: doctors,
-    });
-  });
-  
-  
+    return res.status(200).json(new ApiResponse(200, doctors, "Doctors fetched successfully"));
+});
 
-const login = asyncHandler(async(req,res) => {
+const login = asyncHandler(async(req, res) => {
+    const { email, password } = req.body;
 
-const {email,password,AccountType} = req.body
+    if (!email) throw new ApiError(400, "Email is required");
 
-if(!email){
+    const user = await User.findOne({ email });
+    if (!user) throw new ApiError(404, "User does not exist");
 
-    throw new ApiError(400,"Email is required")
-}
+    const isPasswordValid = await user.isPasswordCorrect(password);
+    if (!isPasswordValid) throw new ApiError(401, "Invalid credentials");
 
-const user = await User.findOne({
-    $or : [{email}]
-})
-console.log(user);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
+    const options = { httpOnly: true, secure: true };
 
-if(!user){
-    throw new ApiError(404,"User does not exist")
-}
-const isPasswordValid = await user.isPasswordCorrect(password)
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(200, { user: loggedInUser, accessToken, refreshToken }, "User logged in successfully"));
+});
 
-if(!isPasswordValid){
-    throw new ApiError(401,"Invalid User Credentials")
-}
-
-const {accessToken,refreshToken} = await generateAccessAndRefreshToken(user._id)
-
-const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-
-const options = {
-    httpOnly : true,
-    secure : true
-}
-
-return res
-.status(200)
-.cookie("accessToken",accessToken,options)
-.cookie("refreshToken",refreshToken,options)
-.json(
-    new ApiResponse(200,{user:loggedInUser,accessToken,refreshToken},"User successfully logged in")
-)
-})
 const PatientDetail = asyncHandler(async (req, res) => {
     const {
-      patientName,
-      disease,
-      allergies,
-      bloodGroup,
-      roomNumber,
-      bedNumber,
-      floorNumber,
-      age,
-      gender,
-      contactInformation,
-      emergencyContact,
-      organAffected // ✅ Match frontend field name
+        patientName, disease, allergies, bloodGroup,
+        roomNumber, bedNumber, floorNumber, age, gender,
+        contactInformation, emergencyContact, organAffected
     } = req.body;
-  
-    console.log("Patient data received:", req.body);
-  
-    // Validate required fields
+
     if (!patientName || !disease || !roomNumber || !bedNumber) {
-      throw new ApiError(400, "Please fill in all required data");
+        throw new ApiError(400, "Please fill in all required fields");
     }
-  
-    // Check if a patient with the same floorNumber or bedNumber already exists
-    const existedPatient = await User.findOne({
-      $or: [{ floorNumber }, { bedNumber }]
-    });
-  
-    if (existedPatient) {
-      throw new ApiError(409, "User with the provided floor or bed number already exists");
+
+    // FIX: null check before accessing image
+    let coverImageUrl = "";
+    if (req.files?.patientimage?.[0]?.path) {
+        const coverImage = await uploadOnCloudinary(req.files.patientimage[0].path);
+        coverImageUrl = coverImage?.url || "";
     }
-  
-    let coverImage; // ✅ Declare here so it’s accessible outside the if block
-  
-    // Handle image upload
-    if (req.files && req.files.patientimage) {
-      const coverImageLocalPath = req.files.patientimage[0].path;
-      console.log("Cover Image Local Path:", coverImageLocalPath);
-  
-      coverImage = await uploadOnCloudinary(coverImageLocalPath);
-      console.log("Cover Image URL:", coverImage.url);
-    }
-  
-    // Create patient record
+
     const patient = await Patient.create({
-      patientName,
-      disease,
-      allergies,
-      bloodGroup,
-      roomNumber,
-      bedNumber,
-      floorNumber,
-      age,
-      gender,
-      contactInformation,
-      emergencyContact,
-      organAffected, // ✅ Correctly mapping form field to schema
-      coverImage: coverImage?.url || " "
+        patientName, disease, allergies, bloodGroup,
+        roomNumber, bedNumber, floorNumber, age, gender,
+        contactInformation, emergencyContact, organAffected,
+        coverImage: coverImageUrl
     });
-  
-    console.log("Created patient:", patient);
-  
-    // Verify patient creation
-    const createdPatient = await Patient.findById(patient._id);
-  
-    if (!createdPatient) {
-      throw new ApiError(500, "Something went wrong while registering the user");
-    }
-  
-    return res.status(201).json(
-      new ApiResponse(200, createdPatient, "User registered successfully")
-    );
-  });
-  
+
+    return res.status(201).json(new ApiResponse(201, patient, "Patient registered successfully"));
+});
 
 const retrievePatient = asyncHandler(async (req, res) => {
-    
     const allData = await Patient.find({});
-  
-    console.log("Data retrieved successfully:", allData);
-  
-    
-    if (!allData || allData.length === 0) {
-      throw new ApiError(404, "Patient data not fetched successfully");
-    }
-  
+    return res.status(200).json(new ApiResponse(200, allData, "Patients fetched successfully"));
+});
 
-    return res.status(200).json(
-      new ApiResponse(200, allData, "Data retrieved successfully")
-    );
-  });
-  
+const foodChartMenu = asyncHandler(async(req, res) => {
+    const {
+        morning, evening, nightMeal,
+        morningIngredients, eveningIngredients, nightIngredients,
+        specialInstructions
+    } = req.body;
 
-
-const foodChartMenu = asyncHandler(async(req,res)=>{
-
-    const{morning,evening,nightMeal,morningIngriends,eveningIngrediends,nightIngriends,specialInstructions} = req.body
-
-
-    console.log("req.body is",req.body);
-
-    console.log("req.files is",req.files);
-    
-    if(!morning || !evening || !nightMeal){
-        throw new ApiError(400,"Please fill the data")
+    if (!morning || !evening || !nightMeal) {
+        throw new ApiError(400, "Morning, evening and night meal are required");
     }
 
-    let coverImageLocalPath1;
-
-   
-
-   
-    coverImageLocalPath1 = req.files.coverImage1[0].path
-    console.log("coverImageLocalPath1",coverImageLocalPath1);
-
-    let coverImageLocalPath2;
-
-   
-
-   
-    coverImageLocalPath2 = req.files.coverImage2[0].path
-    console.log("coverImageLocalPath2",coverImageLocalPath2);
-    
-   
- 
-   const coverImage1 = await uploadOnCloudinary(coverImageLocalPath1)
-   
-   console.log("coverImage1",coverImage1);
-    
-   
- 
-   const coverImage2 = await uploadOnCloudinary(coverImageLocalPath2)
-   
-   console.log("coverImage2",coverImage2);
-
-
-   let coverImageLocalPath3;
-
-   
-
-   
-    coverImageLocalPath3 = req.files.coverImage3[0].path
-    console.log("coverImageLocalPath3",coverImageLocalPath3);
-    
-   
- 
-   const coverImage3 = await uploadOnCloudinary(coverImageLocalPath3)
-   
-   console.log("coverImage3",coverImage3);
+    // FIX: null checks on all 3 images — any can be optional
+    let img1 = "", img2 = "", img3 = "";
+    if (req.files?.coverImage1?.[0]?.path) {
+        const r = await uploadOnCloudinary(req.files.coverImage1[0].path);
+        img1 = r?.url || "";
+    }
+    if (req.files?.coverImage2?.[0]?.path) {
+        const r = await uploadOnCloudinary(req.files.coverImage2[0].path);
+        img2 = r?.url || "";
+    }
+    if (req.files?.coverImage3?.[0]?.path) {
+        const r = await uploadOnCloudinary(req.files.coverImage3[0].path);
+        img3 = r?.url || "";
+    }
 
     const foodChart = await FoodChart.create({
-        morning,
-        evening,
-        nightMeal,
-        morningIngriends,
-        eveningIngrediends,
-        nightIngriends,
+        morning, evening, nightMeal,
+        morningIngredients, eveningIngredients, nightIngredients,
         specialInstructions,
-        coverImage1 : coverImage1.url || " ",
-        coverImage2 : coverImage2.url || " ",
-        coverImage3 : coverImage3.url || " "
-    })
-
-    const createdFoodChart = await FoodChart.findById(foodChart._id)
-
-    if (!createdFoodChart) {
-        throw new ApiError(500, "Something went wrong while registering the user")
-    }
-
-    return res.status(201).json(
-        new ApiResponse(200, createdFoodChart, "User registered Successfully"))
-
-})
-
-const pantrypersonal = asyncHandler(async(req,res)=>{
-
-    const{name,contactInfo,deliveryStatus} = req.body
-
-    if(!name || !contactInfo || !deliveryStatus){
-        throw new ApiError(400,"Please fill the data")
-    }
-
-    let coverImageLocalPath;
-
-    console.log(req.files);
-    
-  
-    coverImageLocalPath = req.files.pantrypersonal[0].path
-        console.log("coverImageLocalPath",coverImageLocalPath);
-    
-    
-
-
-   
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-   
-   console.log("coverImage",coverImage);
-
-    const pantryPersonal = await PantryStaff.create({
-        name,
-        contactInfo,
-        deliveryStatus,
-        coverImage : coverImage.url || " "
-    })
-
-    const createdPantryPersonal = await PantryStaff.findById(pantryPersonal._id)
-
-    if (!createdPantryPersonal) {
-        throw new ApiError(500, "Something went wrong while registering the user")
-    }
-
-    return res.status(201).json(
-        new ApiResponse(200, createdPantryPersonal, "User registered Successfully"))
-
-})
-
-const particularPatientDetail = asyncHandler(async(req,res)=> {
-
-
-    const {object_id} = req.body
-    const patientdetail = await Patient.findById(object_id)
-    
-
-    if(!patientdetail){
-        throw new ApiError(404,"Patient detail not fetched")
-        
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200, patientdetail, "Data retrieved successfully")
-      );
-
-})
-
-const ManagerDetail = asyncHandler(async(req,res)=> {
-
-
-    const {object_id} = req.body
-    const managerdetail = await User.findById(object_id)
-    
-
-    if(!managerdetail){
-        throw new ApiError(404,"Manager detail not fetched")
-        
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200, managerdetail, "Data retrieved successfully")
-      );
-
-})
-
-const fetchFoodMenu = asyncHandler(async(req,res)=> {
-
-    const menu = await FoodChart.find({})
-
-    if(!menu){
-        throw new ApiError(404,"failed to fetch menu Chart")
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200,menu,"Menu retrieved successfully")
-    )
-
-})
-
-
-const fetchPantryDetail = asyncHandler(async(req,res)=> {
-
-    const staffData = await PantryStaff.find({})
-
-    if(!staffData){
-        throw new ApiError(404,"failed to fetch Pantry Personal")
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200,staffData,"Staff data retrieved successfully")
-    )
-
-})
-
-
-    
-
-    const updateStaff = asyncHandler(async (req, res) => {
-        const { id, delivery } = req.body;
-    
-        
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new ApiError(400, "Invalid ID format");
-        }
-    
-        
-        const update = await PantryStaff.updateOne(
-            { _id: new mongoose.Types.ObjectId(id) },
-            { $set: { deliveryStatus: delivery } }
-        );
-    
-        
-        if (update.matchedCount === 0) {
-            throw new ApiError(404, "No staff found with the given ID");
-        }
-    
-        
-        return res.status(200).json(
-            new ApiResponse(200,null, "Staff data updated successfully")
-        );
+        coverImage1: img1,
+        coverImage2: img2,
+        coverImage3: img3
     });
 
-    const delivery = asyncHandler(async (req, res) => {
-    
-        const allData = await Delivery.find({}).populate("patient")
-        .populate("staff");
-      
-        console.log("Data retrieved successfully:", allData);
-      
-        
-        if (!allData) {
-          throw new ApiError(404, "Delivery data not fetched successfully");
-        }
-      
-    
-        return res.status(200).json(
-          new ApiResponse(200, allData, "Data retrieved successfully")
-        );
-      });
+    return res.status(201).json(new ApiResponse(201, foodChart, "Food chart created successfully"));
+});
 
-      const assignDelivery = asyncHandler(async(req,res)=>{
-        const{patient,staff} = req.body
-        console.log(req.body);
-        
+const pantrypersonal = asyncHandler(async(req, res) => {
+    const { name, contactInfo, deliveryStatus } = req.body;
 
-        const deliveries = await Delivery.create({
-            patient,
-            staff
-        })
+    if (!name || !contactInfo || !deliveryStatus) {
+        throw new ApiError(400, "Please fill all required fields");
+    }
 
-        if (!deliveries) {
-            throw new ApiError(404, "Delivery data not submitted successfully");
-          }
-        
-      
-          return res.status(200).json(
-            new ApiResponse(200, deliveries, "Data submitted successfully")
-          );
-      })
+    // FIX: null check on image
+    let coverImageUrl = "";
+    if (req.files?.pantrypersonal?.[0]?.path) {
+        const coverImage = await uploadOnCloudinary(req.files.pantrypersonal[0].path);
+        coverImageUrl = coverImage?.url || "";
+    }
 
-      const deliveryDone = asyncHandler(async(req,res)=>{
-        const {id} = req.body
+    const pantryPersonal = await PantryStaff.create({
+        name, contactInfo, deliveryStatus,
+        coverImage: coverImageUrl
+    });
 
-        const deleteObject = await Delivery.deleteOne({_id : id})
+    return res.status(201).json(new ApiResponse(201, pantryPersonal, "Pantry staff added successfully"));
+});
 
-        if(!deleteObject){
-            throw new ApiError(404,"failed to delete object")
-        }
-    
-        return res.status(200).json(
-            new ApiResponse(200,deleteObject,"Object deleted successfully")
-        )
-      })
+const particularPatientDetail = asyncHandler(async(req, res) => {
+    const { object_id } = req.body;
+    const patientdetail = await Patient.findById(object_id);
+    if (!patientdetail) throw new ApiError(404, "Patient not found");
+    return res.status(200).json(new ApiResponse(200, patientdetail, "Patient fetched successfully"));
+});
 
+const ManagerDetail = asyncHandler(async(req, res) => {
+    const { object_id } = req.body;
+    const managerdetail = await User.findById(object_id);
+    if (!managerdetail) throw new ApiError(404, "Manager not found");
+    return res.status(200).json(new ApiResponse(200, managerdetail, "Manager fetched successfully"));
+});
 
-      const logoutUser = asyncHandler(async(req, res) => {
-        await User.findByIdAndUpdate(
-            req.user._id,
-            {
-                $unset: {
-                    refreshToken: 1 // this removes the field from document
-                }
-            },
-            {
-                new: true
-            }
-        )
-    
-        const options = {
-            httpOnly: true,
-            secure: true
-        }
-    
-        return res
+const fetchFoodMenu = asyncHandler(async(req, res) => {
+    const menu = await FoodChart.find({});
+    return res.status(200).json(new ApiResponse(200, menu, "Menu fetched successfully"));
+});
+
+const fetchPantryDetail = asyncHandler(async(req, res) => {
+    const staffData = await PantryStaff.find({});
+    return res.status(200).json(new ApiResponse(200, staffData, "Staff fetched successfully"));
+});
+
+const updateStaff = asyncHandler(async (req, res) => {
+    const { id, delivery } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new ApiError(400, "Invalid ID format");
+    const update = await PantryStaff.updateOne(
+        { _id: new mongoose.Types.ObjectId(id) },
+        { $set: { deliveryStatus: delivery } }
+    );
+    if (update.matchedCount === 0) throw new ApiError(404, "Staff not found");
+    return res.status(200).json(new ApiResponse(200, null, "Staff updated successfully"));
+});
+
+const delivery = asyncHandler(async (req, res) => {
+    const allData = await Delivery.find({}).populate("patient").populate("staff");
+    return res.status(200).json(new ApiResponse(200, allData, "Deliveries fetched successfully"));
+});
+
+const assignDelivery = asyncHandler(async(req, res) => {
+    const { patient, staff } = req.body;
+    const deliveries = await Delivery.create({ patient, staff });
+    return res.status(200).json(new ApiResponse(200, deliveries, "Delivery assigned successfully"));
+});
+
+const deliveryDone = asyncHandler(async(req, res) => {
+    const { id } = req.body;
+    const deleteObject = await Delivery.deleteOne({ _id: id });
+    if (!deleteObject) throw new ApiError(404, "Delivery not found");
+    return res.status(200).json(new ApiResponse(200, deleteObject, "Delivery completed successfully"));
+});
+
+const logoutUser = asyncHandler(async(req, res) => {
+    await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
+    const options = { httpOnly: true, secure: true };
+    return res
         .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, {}, "User logged Out"))
-    })
+        .json(new ApiResponse(200, {}, "User logged out successfully"));
+});
 
-    const updateDoctorDetails = asyncHandler(async (req, res) => {
-        const { doctorId } = req.params;
-        
-        const {
-        fullName,
-        email,
-        specialization,
-        gender,
-        age,
-        experience,
-        Contact_Number,
-        contact_number, // from frontend if using lowercase
-        } = req.body;
-        
-        console.log("req nody is",req.body);
-        
-        const contactNumber = Contact_Number || contact_number;
-        
-        const updateFields = {
-        ...(typeof fullName !== "undefined" && { fullName }),
-        ...(typeof email !== "undefined" && { email }),
-        ...(typeof specialization !== "undefined" && { specialization }),
-        ...(typeof contactNumber !== "undefined" && { Contact_Number: contactNumber }),
-        ...(typeof gender !== "undefined" && { gender }),
-        ...(typeof age !== "undefined" && { age }),
-        ...(typeof experience !== "undefined" && { experience }),
-        };
-        
-        if (req.files?.coverImage?.[0]?.path) {
-        const imagePath = req.files.coverImage[0].path;
-        const uploadedImage = await uploadOnCloudinary(imagePath);
+const updateDoctorDetails = asyncHandler(async (req, res) => {
+    const { doctorId } = req.params;
+    const { fullName, email, specialization, gender, age, experience, Contact_Number, contact_number } = req.body;
+    const contactNumber = Contact_Number || contact_number;
+
+    const updateFields = {
+        ...(fullName && { fullName }),
+        ...(email && { email }),
+        ...(specialization && { specialization }),
+        ...(contactNumber && { Contact_Number: contactNumber }),
+        ...(gender && { gender }),
+        ...(age && { age }),
+        ...(experience && { experience }),
+    };
+
+    if (req.files?.coverImage?.[0]?.path) {
+        const uploadedImage = await uploadOnCloudinary(req.files.coverImage[0].path);
         updateFields.coverImage = uploadedImage?.url || "";
-        }
-        
-        const updatedDoctor = await Doctor.findByIdAndUpdate(doctorId, updateFields, {
-        new: true,
-        runValidators: true,
-        });
-        
-        if (!updatedDoctor) {
-        throw new ApiError(404, "Doctor not found");
-        }
-        
-        res.status(200).json({
-        success: true,
-        message: "Doctor details updated successfully.",
-        doctor: updatedDoctor,
-        });
-        });
-      
-        const updateFoodMenu = asyncHandler(async (req, res) => {
-            const { menuId } = req.params;
-          
-            console.log("Incoming update request:", req.body);
-console.log("Menu ID:", req.params.menuId);
-            if (!menuId) {
-              throw new ApiError(400, "Menu ID is required");
-            }
-          
-            const updatedMenu = await FoodChart.findByIdAndUpdate(menuId, req.body, {
-              new: true,
-              runValidators: true,
-            });
-          
-            if (!updatedMenu) {
-              throw new ApiError(404, "Menu not found or failed to update");
-            }
-          
-            return res.status(200).json({
-                success: true,
-                data: updatedMenu,
-                message: "Menu updated successfully",
-              });
-              
-          });
-          
-    
+    }
+
+    const updatedDoctor = await Doctor.findByIdAndUpdate(doctorId, updateFields, { new: true, runValidators: true });
+    if (!updatedDoctor) throw new ApiError(404, "Doctor not found");
+
+    return res.status(200).json(new ApiResponse(200, updatedDoctor, "Doctor updated successfully"));
+});
+
+const updateFoodMenu = asyncHandler(async (req, res) => {
+    const { menuId } = req.params;
+    if (!menuId) throw new ApiError(400, "Menu ID is required");
+
+    const updatedMenu = await FoodChart.findByIdAndUpdate(menuId, req.body, { new: true, runValidators: true });
+    if (!updatedMenu) throw new ApiError(404, "Menu not found");
+
+    return res.status(200).json(new ApiResponse(200, updatedMenu, "Menu updated successfully"));
+});
 
 export {
-
-    registerUser,
-    generateAccessAndRefreshToken,
-    login,
-    PatientDetail,
-    foodChartMenu,
-    pantrypersonal,
-    retrievePatient,
-    particularPatientDetail,
-    fetchFoodMenu,
-    fetchPantryDetail,
-    updateStaff,
-    delivery,
-    assignDelivery,
-    deliveryDone,
-    logoutUser,
-    ManagerDetail,
-    registerDoctor,
-    getAllDoctors,
-    updateDoctorDetails,
-    updateFoodMenu,
-}
+    registerUser, generateAccessAndRefreshToken, login,
+    PatientDetail, foodChartMenu, pantrypersonal,
+    retrievePatient, particularPatientDetail,
+    fetchFoodMenu, fetchPantryDetail, updateStaff,
+    delivery, assignDelivery, deliveryDone,
+    logoutUser, ManagerDetail, registerDoctor,
+    getAllDoctors, updateDoctorDetails, updateFoodMenu,
+};

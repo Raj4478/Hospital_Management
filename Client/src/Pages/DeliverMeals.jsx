@@ -1,165 +1,137 @@
 import React, { useEffect, useState } from "react";
-import StaffCard from "./StaffCard.jsx";
 import axios from "axios";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Sidebar from "./Sidebar";
 
 const DeliverMeals = () => {
-  const navigate = useNavigate();
+  const [deliveries, setDeliveries] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ patient: "", staff: "" });
+  const [submitting, setSubmitting] = useState(false);
 
-  const [apiData1, setApiData1] = useState(null);
-  const [apiData2, setApiData2] = useState(null);
-
-  const url1 = "/api/v1/user/pantrydetail";
-  const url2 = "/api/v1/user/patientdata";
-  const url3 = "/api/v1/user/updatestaff";
-  const url4 = "/api/v1/user/assigndelivery";
-
-  const fetchData = async () => {
+  const fetchAll = async () => {
     try {
-      const fields = await fetch(url1);
-      const data = await fields.json();
-      setApiData1(data);
-    } catch (error) {
-      console.log("Api Error", error);
+      const [dRes, pRes, sRes] = await Promise.all([
+        axios.get("/api/v1/user/delivery"),
+        axios.get("/api/v1/user/patientdata"),
+        axios.get("/api/v1/user/pantrydetail"),
+      ]);
+      setDeliveries(dRes.data?.data || dRes.data?.message || []);
+      setPatients(pRes.data?.data || pRes.data?.message || []);
+      setStaff(sRes.data?.data || sRes.data?.message || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, []);
+
+  const handleAssign = async () => {
+    if (!form.patient || !form.staff) { toast.error("Select both patient and staff"); return; }
+    setSubmitting(true);
+    try {
+      await axios.post("/api/v1/user/assigndelivery", form);
+      toast.success("Delivery assigned!");
+      setForm({ patient: "", staff: "" });
+      fetchAll();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to assign");
+    }
+    setSubmitting(false);
+  };
+
+  const handleDone = async (id) => {
+    try {
+      await axios.post("/api/v1/user/deleteObject", { id });
+      toast.success("Delivery marked as done!");
+      fetchAll();
+    } catch {
+      toast.error("Failed to update");
     }
   };
 
-  const patientDetails = async () => {
-    try {
-      const fields = await fetch(url2);
-      const data = await fields.json();
-      setApiData2(data);
-    } catch (error) {
-      console.log("Api Error", error);
-    }
-  };
+  return (
+    <div className="flex min-h-screen bg-slate-50">
+      <ToastContainer position="top-center" autoClose={3000} />
+      <Sidebar role="Manager" />
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="page-header">
+          <h1>Meal Delivery</h1>
+          <p>Assign and track patient meal deliveries</p>
+        </div>
 
-  const delivery = () => {
-    if (!apiData1?.message?.length || !apiData2?.message?.length) return;
+        {/* Assign form */}
+        <div className="card mb-6">
+          <h2 className="text-base font-semibold text-slate-700 mb-4">Assign Delivery</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">Patient</label>
+              <select value={form.patient} onChange={e => setForm(f => ({ ...f, patient: e.target.value }))} className="form-input">
+                <option value="">Select patient</option>
+                {patients.map(p => (
+                  <option key={p._id} value={p._id}>{p.patientName} — Room {p.roomNumber}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">Pantry Staff</label>
+              <select value={form.staff} onChange={e => setForm(f => ({ ...f, staff: e.target.value }))} className="form-input">
+                <option value="">Select staff</option>
+                {staff.map(s => (
+                  <option key={s._id} value={s._id}>{s.name} — {s.deliveryStatus}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={handleAssign} disabled={submitting} className="btn-primary w-full">
+                {submitting ? "Assigning..." : "Assign Delivery"}
+              </button>
+            </div>
+          </div>
+        </div>
 
-    let count = 0;
-    apiData2.message.forEach((data) => {
-      if (apiData1.message[count]?.deliveryStatus === "available") {
-        apiData1.message[count].deliveryStatus = `Delivering food to ${data.patientName} at ${data.roomNumber}`;
-
-        const updateStatus = {
-          id: apiData1.message[count]._id,
-          delivery: apiData1.message[count].deliveryStatus,
-        };
-
-        axios.post(url3, updateStatus)
-          .then((res) => console.log("Updated Status:", res.data.message))
-          .catch((err) => console.log(err));
-
-        const assignDelivery = {
-          staff: apiData1.message[count]._id,
-          patient: apiData2.message[count]._id,
-        };
-
-        axios.post(url4, assignDelivery)
-          .then((res) => {
-            console.log("Assigned Delivery:", res.data.message);
-            window.location.reload();
-          })
-          .catch((err) => console.log(err));
-
-        count += 1;
-      } else {
-        count += 1;
-      }
-    });
-  };
-
-  const changeDelivery = () => {
-    apiData1.message.forEach((staff) => {
-      staff.deliveryStatus = "available";
-      const resetStatus = {
-        id: staff._id,
-        delivery: staff.deliveryStatus,
-      };
-
-      axios.post(url3, resetStatus)
-        .then((res) => console.log(res.data.message))
-        .catch((err) => console.log(err));
-    });
-
-    setTimeout(() => window.location.reload(), 500);
-  };
-
-  useEffect(() => {
-    fetchData();
-    patientDetails();
-  }, []);
-
-  const spinTransition = {
-    repeat: Infinity,
-    ease: "linear",
-    duration: 1.2,
-  };
-
-  return apiData1 ? (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="p-8 max-w-screen-xl mx-auto"
-    >
-      <h2 className="text-center font-bold text-3xl text-gray-700 font-new mb-6">
-        Staff Detail
-      </h2>
-
-      {/* Top Buttons */}
-      <div className="flex flex-wrap justify-center gap-4 mb-8">
-        <button
-          onClick={delivery}
-          className="bg-amber-400 hover:bg-amber-500 text-white font-semibold py-2 px-6 rounded shadow transition duration-300"
-        >
-          🚚 Deliver Food
-        </button>
-        <button
-          onClick={changeDelivery}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-6 rounded shadow transition duration-300"
-        >
-          🔄 Reset Delivery Status
-        </button>
-        <button
-          onClick={() => navigate("/createpantry")}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded shadow transition duration-300"
-        >
-          ➕ Add Pantry Staff
-        </button>
-      </div>
-
-      {/* Staff Cards */}
-      <motion.div
-        layout
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-      >
-        {apiData1.message.map((data, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <StaffCard
-              contact={data.contactInfo}
-              name={data.name}
-              image={data.coverImage}
-              status={data.deliveryStatus}
-            />
-          </motion.div>
-        ))}
-      </motion.div>
-    </motion.div>
-  ) : (
-    <div className="flex justify-center items-center min-h-screen">
-      <motion.div
-        className="w-14 h-14 border-4 border-gray-300 border-t-blue-500 rounded-full"
-        animate={{ rotate: 360 }}
-        transition={spinTransition}
-      />
+        {/* Deliveries table */}
+        <div className="card">
+          <h2 className="text-base font-semibold text-slate-700 mb-4">
+            Active Deliveries <span className="badge badge-blue ml-2">{deliveries.length}</span>
+          </h2>
+          {loading ? (
+            <div className="text-center py-10 text-slate-400">Loading...</div>
+          ) : deliveries.length === 0 ? (
+            <div className="text-center py-10 text-slate-400">No active deliveries.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>Room</th>
+                    <th>Assigned Staff</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deliveries.map(d => (
+                    <tr key={d._id}>
+                      <td className="font-medium capitalize">{d.patient?.patientName || "—"}</td>
+                      <td>Room {d.patient?.roomNumber || "—"}</td>
+                      <td className="capitalize">{d.staff?.name || "—"}</td>
+                      <td>
+                        <button onClick={() => handleDone(d._id)}
+                          className="badge badge-green cursor-pointer hover:bg-green-200 transition-colors">
+                          ✓ Mark Done
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };
