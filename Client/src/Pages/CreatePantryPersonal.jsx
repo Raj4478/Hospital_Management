@@ -41,7 +41,7 @@ const CreatePantryPersonal = () => {
     <div className="flex min-h-screen bg-slate-50">
       <ToastContainer position="top-center" autoClose={3000} />
       <Sidebar role="Pantry" />
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="page-header">
           <button onClick={() => navigate(-1)} className="text-sm text-slate-400 hover:text-slate-600 mb-3 block">← Back</button>
           <h1>Add Pantry Staff</h1>

@@ -56,7 +56,7 @@ const DeliverMeals = () => {
     <div className="flex min-h-screen bg-slate-50">
       <ToastContainer position="top-center" autoClose={3000} />
       <Sidebar role="Manager" />
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="page-header">
           <h1>Meal Delivery</h1>
           <p>Assign and track patient meal deliveries</p>
@@ -65,7 +65,7 @@ const DeliverMeals = () => {
         {/* Assign form */}
         <div className="card mb-6">
           <h2 className="text-base font-semibold text-slate-700 mb-4">Assign Delivery</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Patient</label>
               <select value={form.patient} onChange={e => setForm(f => ({ ...f, patient: e.target.value }))} className="form-input">
@@ -102,7 +102,7 @@ const DeliverMeals = () => {
           ) : deliveries.length === 0 ? (
             <div className="text-center py-10 text-slate-400">No active deliveries.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>

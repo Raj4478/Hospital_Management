@@ -25,8 +25,8 @@ const PatientFetch = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role="Manager" />
-      <main className="flex-1 p-8 overflow-auto">
-        <div className="page-header flex justify-between items-start">
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
+        <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div>
             <h1>Patients</h1>
             <p>{patients.length} total patients registered</p>
@@ -49,7 +49,7 @@ const PatientFetch = () => {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No patients found.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>

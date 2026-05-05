@@ -59,7 +59,7 @@ const Manager = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role="Manager" />
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="page-header">
           <h1>Manager Dashboard</h1>
           <p>Hospital overview and quick actions</p>

@@ -24,8 +24,8 @@ const DoctorsPage = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role="Manager" />
-      <main className="flex-1 p-8 overflow-auto">
-        <div className="page-header flex justify-between items-start">
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
+        <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div>
             <h1>Doctors</h1>
             <p>{doctors.length} doctors registered</p>

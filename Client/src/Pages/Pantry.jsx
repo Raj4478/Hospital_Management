@@ -39,7 +39,7 @@ const Pantry = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role="Pantry" />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8">
         <div className="page-header">
           <h1>Pantry Dashboard</h1>
           <p>Manage meal preparation and delivery</p>
