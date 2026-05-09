@@ -1,7 +1,8 @@
 {
-  "name": "medicare-hms",
+  "name": "medicare-hms-root",
   "version": "1.0.0",
   "scripts": {
-    "build": "echo 'Use Client folder as root directory'"
+    "build": "npm install --prefix Client && npm run build --prefix Client",
+    "dev": "npm run dev --prefix Client"
   }
 }
