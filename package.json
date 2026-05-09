@@ -1,8 +1,0 @@
-{
-  "name": "medicare-hms-root",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "npm install --prefix Client && npm run build --prefix Client",
-    "dev": "npm run dev --prefix Client"
-  }
-}
