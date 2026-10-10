@@ -5,10 +5,13 @@
   "description": "REST API for MediCare HMS — patients, doctors, diet plans, pantry staff and meal deliveries",
   "main": "index.js",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18 <25"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "build": "node -e \"fs.mkdirSync('dist',{recursive:true})\"",
     "seed": "node scripts/seed.js",
     "test": "node --test --test-timeout=60000 tests/api.test.js"
   },

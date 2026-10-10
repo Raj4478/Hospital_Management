@@ -8,7 +8,12 @@ import { User } from "../model/user.model.js";
 import { env } from "../config/env.js";
 
 const MINUTE = 60 * 1000;
-const cookieBase = { httpOnly: true, secure: env.isProd, sameSite: "lax", path: "/" };
+const cookieBase = {
+    httpOnly: true,
+    secure: env.isProd || env.cookieSameSite === "none",
+    sameSite: env.cookieSameSite,
+    path: "/",
+};
 const accessCookie = { ...cookieBase, maxAge: 15 * MINUTE };
 const refreshCookie = { ...cookieBase, maxAge: 7 * 24 * 60 * MINUTE };
 
