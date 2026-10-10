@@ -1,28 +1,31 @@
-import {ApiError} from "../utils/ApiError.js"
+import jwt from "jsonwebtoken";
+import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../model/user.model.js";
-import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
 
-export const verifyJWT = asyncHandler(async(req,_,next)=>{
+export const verifyJWT = asyncHandler(async (req, _res, next) => {
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace(/^Bearer\s+/i, "");
+    if (!token) throw ApiError.unauthorized();
+
+    let decoded;
     try {
-        
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
-
-        if(!token){
-            throw new ApiError(401,"Unauthorized request")
-        }
-
-        const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
-
-        const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
-
-        if(!user){
-            throw new ApiError(401,"Invalid Access Token")
-        }
-
-        req.user = user
-        next()
-    } catch (error) {
-        throw new ApiError(401,error?.message || "Invalid Access Token")
+        decoded = jwt.verify(token, env.accessSecret);
+    } catch (err) {
+        throw ApiError.unauthorized(err.name === "TokenExpiredError" ? "Session expired" : "Invalid access token");
     }
-})
+
+    const user = await User.findById(decoded._id);
+    if (!user) throw ApiError.unauthorized("Account no longer exists");
+
+    req.user = user;
+    next();
+});
+
+/** Restricts a route to the given roles. Use after verifyJWT. */
+export const authorize = (...roles) => (req, _res, next) => {
+    if (!req.user || !roles.includes(req.user.AccountType)) {
+        return next(ApiError.forbidden());
+    }
+    next();
+};
