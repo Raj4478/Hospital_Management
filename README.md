@@ -1,227 +1,138 @@
-# MediCare HMS 🏥
+# MediCare HMS
 
-A modern, full-stack Hospital Management System built with React + Node.js. Manage patients, doctors, diet plans, and meal deliveries from a clean, role-based dashboard.
+A hospital management dashboard for **managers** and **pantry teams**: admit patients, assign doctors, plan each patient's meals and track every meal from the kitchen to the bedside.
 
-![Node.js](https://img.shields.io/badge/Node.js-20.x-green?style=flat-square&logo=node.js)
-![React](https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?style=flat-square&logo=mongodb)
-![Cloudinary](https://img.shields.io/badge/Cloudinary-Image%20Upload-blue?style=flat-square)
+**Live:** https://hospital-management-4qeu-4ad8fikhf-rajeshwar-singhs-projects.vercel.app
 
----
-
-## ✨ Features
-
-**Manager Role**
-- Dashboard with live stats (patients, doctors, diet plans, deliveries)
-- Register and view patients with full medical details
-- Register and manage doctors with specializations
-- Create and manage patient diet plans (morning, evening, night meals)
-- Assign meal deliveries to pantry staff and mark them complete
-
-**Pantry Staff Role**
-- View all active patients and their diet plans
-- Manage delivery assignments and update delivery status
-
-**Both Roles**
-- Secure JWT-based login with role-based routing
-- Image uploads via Cloudinary (patient photos, doctor photos, meal images)
-- Fully responsive — works on mobile, tablet, and desktop
+![React](https://img.shields.io/badge/React-18-149eca?style=flat-square&logo=react)
+![Express](https://img.shields.io/badge/Express-4-000?style=flat-square&logo=express)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose_8-47a248?style=flat-square&logo=mongodb)
+![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8?style=flat-square&logo=tailwindcss)
 
 ---
 
-## 🛠️ Tech Stack
+## Features
 
-| Layer | Technology |
+| Area | What you can do |
 |---|---|
-| Frontend | React 18, Vite, Tailwind CSS, React Router v7 |
-| Backend | Node.js, Express.js |
-| Database | MongoDB (Mongoose ODM) |
-| Auth | JWT (access + refresh tokens), bcrypt |
-| Image Upload | Multer + Cloudinary |
-| Deployment | Vercel (frontend) / Railway or Render (backend) |
+| **Dashboard** | Admitted patients, doctors, diet-plan coverage and staff availability at a glance; today's delivery pipeline; meals delivered over the last 7 days; patients per floor; recent activity; a "needs attention" list (e.g. patients with no diet plan). |
+| **Patients** | Search, filter (admitted / discharged), paginate. Detail drawer with bed, doctor, allergies, current diet plan and recent deliveries. Admit, edit, **discharge** (closes the diet plan and cancels open deliveries). **Export to CSV.** One admitted patient per bed is enforced. |
+| **Doctors** | Card grid with search and a specialization filter, availability, and how many admitted patients each doctor is looking after. Add, edit, remove. |
+| **Diet plans** | Morning / evening / night meals per patient with ingredients and special instructions. Allergies are shown wherever meals are planned or delivered. A new plan automatically archives the old one. |
+| **Meal deliveries** | Board view per day and meal: **Pending → Preparing → Out for delivery → Delivered** (or Cancelled), with a full timeline of who changed what and when. Duplicate deliveries for the same patient, meal and day are blocked. |
+| **Pantry staff** | Shifts, clock in / out, open delivery counts. Status flips to *On delivery* and back to *Available* automatically as deliveries move. |
+| **Accounts** | Sign-up with role selection, httpOnly cookie sessions with short-lived access tokens and silent refresh, role-based access on every API route. |
+
+## Roles
+
+| | Manager | Pantry team |
+|---|:-:|:-:|
+| View everything | ✅ | ✅ |
+| Admit / edit / discharge patients, export CSV | ✅ | — |
+| Add / edit / remove doctors | ✅ | — |
+| Create / edit diet plans | ✅ | — |
+| Manage pantry staff | ✅ (incl. remove) | ✅ |
+| Assign and progress meal deliveries | ✅ | ✅ |
+
+Which roles can self-register is controlled by `SIGNUP_ROLES` (default `Manager,Pantry`). For a real deployment set it to `Pantry` so new managers can't sign themselves up.
 
 ---
 
-## 📁 Project Structure
+## Tech
+
+- **Frontend:** React 18, Vite 6, Tailwind CSS 3, React Router 7, React Hook Form, lucide-react icons. Route-level code splitting.
+- **Backend:** Express 4, Mongoose 8, Zod request validation, JWT access + rotating refresh tokens in httpOnly cookies, Helmet, rate-limited auth routes, Multer (in memory) + Cloudinary for images.
+- **Tests:** Node's built-in test runner + Supertest against an in-memory MongoDB (`mongodb-memory-server`).
+- **Hosting:** Vercel serves the frontend **and** the API (as a serverless function at `/api`), so there is one domain and no CORS setup.
 
 ```
-Hospital_Management/
-├── Client/                    # React frontend (Vite)
-│   ├── src/
-│   │   ├── Pages/
-│   │   │   ├── Login.jsx          # Split-panel login page
-│   │   │   ├── Signup.jsx         # Registration page
-│   │   │   ├── Sidebar.jsx        # Responsive sidebar + mobile drawer
-│   │   │   ├── Manager.jsx        # Manager dashboard
-│   │   │   ├── Pantry.jsx         # Pantry dashboard
-│   │   │   ├── PatientFetch.jsx   # Patients table with search
-│   │   │   ├── DoctorsPage.jsx    # Doctors grid
-│   │   │   ├── FoodChart.jsx      # Diet plans view
-│   │   │   ├── DeliverMeals.jsx   # Delivery assignment
-│   │   │   ├── CreateNewPatient.jsx
-│   │   │   ├── CreateDoctor.jsx
-│   │   │   ├── CreateFoodChart.jsx
-│   │   │   └── CreatePantryPersonal.jsx
-│   │   ├── App.jsx                # Router setup
-│   │   └── index.css              # Global styles + design tokens
-│   └── package.json
-│
-└── Server/                    # Express backend
-    ├── controllers/
-    │   └── user.controller.js     # All business logic
-    ├── model/
-    │   └── user.model.js          # Mongoose schemas (User, Patient, Doctor, FoodChart, PantryStaff, Delivery)
-    ├── router/
-    │   └── user.router.js         # API routes
-    ├── middleware/
-    │   ├── auth.middleware.js      # JWT verification
-    │   └── multer.middleware.js    # File upload handling
-    ├── utils/
-    │   ├── ApiError.js            # Consistent error responses
-    │   ├── ApiResponse.js         # Consistent success responses
-    │   ├── asyncHandler.js        # Async error wrapper
-    │   └── cloudinary.js         # Image upload utility
-    ├── app.js                     # Express app setup
-    └── index.js                   # DB connection + server start
+├── api/index.js          # Vercel serverless entry → Server/app.js
+├── src/                  # React app
+│   ├── components/       # Design system (ui.jsx), layout, route guards
+│   ├── context/          # Auth session
+│   ├── hooks/            # Data fetching
+│   ├── lib/              # API client, formatting
+│   └── Pages/            # Dashboard, Patients, Doctors, DietPlans, Deliveries, Staff, auth pages
+└── Server/
+    ├── app.js            # Express app (security, CORS, health check, routing, errors)
+    ├── index.js          # Local server entry
+    ├── config/           # Environment + MongoDB connection (cached for serverless)
+    ├── controllers/      # One file per resource
+    ├── middleware/       # Auth/roles, validation, uploads, error handler
+    ├── model/            # Mongoose schemas
+    ├── router/           # REST routes
+    ├── validators/       # Zod schemas
+    ├── scripts/seed.js   # Demo data
+    └── tests/            # API tests
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## Running locally
 
-### Prerequisites
-- Node.js 18+
-- MongoDB Atlas account (or local MongoDB)
-- Cloudinary account (free tier works)
-
-### 1. Clone the repo
+Requires Node 18+ and a MongoDB database (Atlas free tier works).
 
 ```bash
-git clone https://github.com/Raj4478/Hospital_Management.git
-cd Hospital_Management
+npm install                       # frontend + shared deps
+npm --prefix Server install       # API deps
+cp Server/.env.example Server/.env   # then fill in MONGODB_URI and the two token secrets
+npm run seed                      # optional: demo patients, doctors, plans and deliveries
+npm run dev:api                   # API on http://localhost:8000
+npm run dev                       # app on http://localhost:5173 (proxies /api to :8000)
 ```
 
-### 2. Configure environment variables
-
-Create a `.env` file in the **root** directory:
-
-```env
-PORT=8000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net
-CORS_ORIGIN=http://localhost:5173
-
-ACCESS_TOKEN_SECRET=your_access_token_secret
-ACCESS_TOKEN_EXPIRY=1d
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
-REFRESH_TOKEN_EXPIRY=10d
-
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
-### 3. Install and run the backend
+After seeding, sign in as `manager@medicare.test` or `pantry@medicare.test` with password `Demo@1234` (override with `SEED_PASSWORD`).
 
 ```bash
-cd Server
-npm install
-npm run dev
-# Runs on http://localhost:8000
+npm run test:api                  # 15 API tests against an in-memory MongoDB
+npm run lint
 ```
 
-### 4. Install and run the frontend
+## Deploying to Vercel
 
-```bash
-cd Client
-npm install
-npm run dev
-# Runs on http://localhost:5173
-```
+The repo deploys as-is. In the Vercel project settings add these environment variables:
+
+| Variable | Required | Notes |
+|---|:-:|---|
+| `MONGODB_URI` | ✅ | Atlas connection string. Allow Vercel's IPs (or `0.0.0.0/0`) in Atlas network access. |
+| `ACCESS_TOKEN_SECRET` | ✅ | Long random string |
+| `REFRESH_TOKEN_SECRET` | ✅ | A different long random string |
+| `ACCESS_TOKEN_EXPIRY` / `REFRESH_TOKEN_EXPIRY` | | Defaults `15m` / `7d` |
+| `SIGNUP_ROLES` | | Defaults `Manager,Pantry` |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | | Without them, photos are skipped |
+| `VITE_API_URL` | | Only if the API is hosted somewhere else (then also set `CORS_ORIGIN` on the API) |
+
+Check `/api/health` after deploying: it reports whether the database is connected.
 
 ---
 
-## 🔌 API Endpoints
+## API
 
-### Auth
-| Method | Endpoint | Description |
+All routes are under `/api/v1` and return `{ success, statusCode, message, data }`. Errors return `{ success: false, statusCode, message, errors[] }`. List endpoints accept `?q=&page=&limit=&sort=` and return `{ items, page, limit, total, pages }`.
+
+| Method | Path | Who |
 |---|---|---|
-| POST | `/api/v1/user/register` | Register new user |
-| POST | `/api/v1/user/login` | Login (returns JWT) |
-| POST | `/api/v1/user/logout` | Logout |
-
-### Patients
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/user/patientdetail` | Register patient |
-| GET | `/api/v1/user/patientdata` | Get all patients |
-| POST | `/api/v1/user/particularpatient` | Get patient by ID |
-
-### Doctors
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/user/registerdoctor` | Register doctor |
-| GET | `/api/v1/user/getalldoctors` | Get all doctors |
-| PATCH | `/api/v1/user/updatedoctor/:doctorId` | Update doctor |
-
-### Diet / Food Chart
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/user/menu` | Create diet plan |
-| GET | `/api/v1/user/menu` | Get all diet plans |
-| PATCH | `/api/v1/user/updatemenu/:menuId` | Update diet plan |
-
-### Pantry & Delivery
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/user/pantrypersonal` | Add pantry staff |
-| GET | `/api/v1/user/pantrydetail` | Get all staff |
-| PATCH | `/api/v1/user/updatestaff` | Update staff status |
-| POST | `/api/v1/user/assigndelivery` | Assign delivery |
-| GET | `/api/v1/user/delivery` | Get all deliveries |
-| POST | `/api/v1/user/deleteObject` | Mark delivery done |
+| GET | `/auth/signup-options` | public |
+| POST | `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` | public |
+| GET | `/auth/me` | signed in |
+| GET | `/dashboard` | signed in |
+| GET | `/patients` (`status`, `floor`), `/patients/:id` | signed in |
+| GET | `/patients/export` (CSV) | manager |
+| POST / PATCH | `/patients`, `/patients/:id` | manager |
+| POST | `/patients/:id/discharge` | manager |
+| GET | `/doctors` (`specialization`), `/doctors/specializations` | signed in |
+| POST / PATCH / DELETE | `/doctors`, `/doctors/:id` | manager |
+| GET | `/diet-plans` (`patient`, `active=true\|false\|all`) | signed in |
+| POST / PATCH | `/diet-plans`, `/diet-plans/:id` | manager |
+| GET / POST / PATCH | `/staff`, `/staff/:id` | signed in |
+| DELETE | `/staff/:id` | manager |
+| GET | `/deliveries` (`date`, `status`, `mealSlot`, `staff`) | signed in |
+| POST | `/deliveries` | signed in |
+| PATCH | `/deliveries/:id/status` | signed in |
+| GET | `/api/health` | public |
 
 ---
 
-## 👤 Roles & Access
+## Author
 
-| Role | Access |
-|---|---|
-| **Manager** | Full access — patients, doctors, diet plans, deliveries, all create forms |
-| **Pantry** | Patients, diet plans, delivery assignment, pantry staff management |
-
-Set the role during registration. Login routes to the correct dashboard automatically.
-
----
-
-## 📱 Mobile Support
-
-Fully responsive across all screen sizes:
-- **Desktop** — persistent sidebar navigation
-- **Mobile** — hamburger menu with slide-in drawer
-- Touch-friendly tap targets on all interactive elements
-- iOS input zoom prevention
-
----
-
-## 🐛 Bug Fixes (v2.0)
-
-The following critical bugs were fixed in the latest version:
-
-- `FoodChart` model was missing `mongoose.Schema()` wrapper — all food chart creates silently failed
-- MongoDB URI used `\\Hospital` (escape sequence) instead of `/Hospital`
-- `ApiError` used `StatusCode` (capital S) — Express requires `statusCode` (lowercase)
-- Server crashed when image not provided in `registerUser`, `foodChartMenu`, `pantrypersonal` — null checks added
-- Credentials logged to console in `cloudinary.js` — removed
-- `eveningIngrediends` typo fixed consistently across model and controller
-
----
-
-## 👨‍💻 Author
-
-**Rajeshwar Singh**
-- GitHub: [@Raj4478](https://github.com/Raj4478)
-- LinkedIn: [Rajeshwar Singh](https://www.linkedin.com/in/rajeshwar-singh-b77075271)
-
----
-
-⭐ Star this repo if you found it useful!
+**Rajeshwar Singh** · [GitHub @Raj4478](https://github.com/Raj4478) · [LinkedIn](https://www.linkedin.com/in/rajeshwar-singh-b77075271)

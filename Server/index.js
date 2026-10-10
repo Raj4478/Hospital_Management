@@ -1,23 +1,23 @@
-import mongoose from "mongoose";
+import { env, assertEnv } from "./config/env.js";
+import { connectDB } from "./config/db.js";
 import app from "./app.js";
-import dotenv from "dotenv";
-dotenv.config({ path: "../.env" });
 
-const connectDB = async() => {
-    try {
-        // FIX: was \\Hospital (escape sequence) — changed to /Hospital
-        const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}/Hospital`);
-        console.log(`MongoDB connected. Host: ${connectionInstance.connection.host}`);
-    } catch (error) {
-        console.log("MongoDB connection failed:", error.message);
-        process.exit(1);
-    }
-};
+try {
+    assertEnv();
+    const conn = await connectDB();
+    console.log(`MongoDB connected: ${conn.host}/${conn.name}`);
+} catch (err) {
+    console.error(err.message);
+    process.exit(1);
+}
 
-connectDB().then(() => {
-    app.listen(process.env.PORT || 8000, () => {
-        console.log(`Server running on port: ${process.env.PORT || 8000}`);
-    });
-}).catch((err) => {
-    console.log("MongoDB connection failed:", err.message);
+const server = app.listen(env.port, () => {
+    console.log(`API listening on http://localhost:${env.port} (${env.nodeEnv})`);
 });
+
+const shutdown = (signal) => {
+    console.log(`${signal} received, shutting down`);
+    server.close(() => process.exit(0));
+};
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
